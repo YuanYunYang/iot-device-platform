@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iot.platform.repository.AlarmMapper">
+
+    <!-- 告警结果映射 -->
+    <resultMap id="BaseResultMap" type="com.iot.platform.model.entity.Alarm">
+        <id column="id" property="id"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="product_id" property="productId"/>
+        <result column="alarm_level" property="alarmLevel"/>
+        <result column="alarm_type" property="alarmType"/>
+        <result column="alarm_title" property="alarmTitle"/>
+        <result column="alarm_content" property="alarmContent"/>
+        <result column="property_identifier" property="propertyIdentifier"/>
+        <result column="alarm_value" property="alarmValue"/>
+        <result column="status" property="status"/>
+        <result column="alarm_time" property="alarmTime"/>
+        <result column="resolved_time" property="resolvedTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, device_id, product_id, alarm_level, alarm_type, alarm_title, alarm_content,
+        property_identifier, alarm_value, status, alarm_time, resolved_time
+    </sql>
+
+    <!-- 按设备ID分页查询告警 -->
+    <select id="selectAlarmsByDeviceId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM alarm
+        WHERE device_id = #{deviceId}
+        <if test="level != null and level != ''">
+            AND alarm_level = #{level}
+        </if>
+        ORDER BY alarm_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+</mapper>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iot.platform.repository.ThingModelMapper">
+
+    <resultMap id="BaseResultMap" type="com.iot.platform.model.entity.ThingModel">
+        <id column="id" property="id"/>
+        <result column="product_id" property="productId"/>
+        <result column="identifier" property="identifier"/>
+        <result column="name" property="name"/>
+        <result column="type" property="type"/>
+        <result column="data_type" property="dataType"/>
+        <result column="unit" property="unit"/>
+        <result column="min_value" property="minValue"/>
+        <result column="max_value" property="maxValue"/>
+        <result column="alarm_level" property="alarmLevel"/>
+        <result column="description" property="description"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, product_id, identifier, name, type, data_type, unit, min_value,
+        max_value, alarm_level, description, create_time
+    </sql>
+
+    <!-- 根据产品ID查询物模型列表 -->
+    <select id="selectByProductId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM thing_model
+        WHERE product_id = #{productId}
+        ORDER BY id ASC
+    </select>
+
+    <!-- 根据产品ID删除物模型 -->
+    <delete id="deleteByProductId">
+        DELETE FROM thing_model WHERE product_id = #{productId}
+    </delete>
+
+</mapper>

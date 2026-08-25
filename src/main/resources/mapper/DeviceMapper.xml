@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iot.platform.repository.DeviceMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.iot.platform.model.entity.Device">
+        <id column="id" property="id"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="device_name" property="deviceName"/>
+        <result column="product_id" property="productId"/>
+        <result column="product_key" property="productKey"/>
+        <result column="device_secret" property="deviceSecret"/>
+        <result column="status" property="status"/>
+        <result column="firmware_version" property="firmwareVersion"/>
+        <result column="ip_address" property="ipAddress"/>
+        <result column="last_online_time" property="lastOnlineTime"/>
+        <result column="last_offline_time" property="lastOfflineTime"/>
+        <result column="last_heartbeat_time" property="lastHeartbeatTime"/>
+        <result column="location" property="location"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Column_List">
+        id, device_id, device_name, product_id, product_key, device_secret, status,
+        firmware_version, ip_address, last_online_time, last_offline_time,
+        last_heartbeat_time, location, remark, create_time, update_time, deleted
+    </sql>
+
+    <!-- 根据设备ID查询设备（含产品信息） -->
+    <select id="selectByDeviceId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device
+        WHERE device_id = #{deviceId} AND deleted = 0
+    </select>
+
+    <!-- 批量更新超时设备状态为离线 -->
+    <update id="updateOfflineByTimeout">
+        UPDATE device
+        SET status = 'OFFLINE',
+            last_offline_time = NOW(),
+            update_time = NOW()
+        WHERE status = 'ONLINE'
+          AND deleted = 0
+          AND last_heartbeat_time IS NOT NULL
+          AND TIMESTAMPDIFF(SECOND, last_heartbeat_time, NOW()) &gt; #{timeoutSeconds}
+    </update>
+
+</mapper>

@@ -1,0 +1,90 @@
+version: '3.8'
+
+# IoT 设备接入管控平台 - 基础设施一键启动
+# 包含：MySQL 8.0 + Redis + Eclipse Mosquitto (MQTT Broker) + InfluxDB 2.0
+# 使用方式：docker-compose up -d
+
+services:
+  # ===================== MySQL 8.0 关系型数据库 =====================
+  mysql:
+    image: mysql:8.0
+    container_name: iot-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: iot_platform
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./src/main/resources/sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password
+    networks:
+      - iot-network
+
+  # ===================== Redis 缓存 =====================
+  redis:
+    image: redis:7-alpine
+    container_name: iot-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --requirepass redis123456
+    networks:
+      - iot-network
+
+  # ===================== Eclipse Mosquitto MQTT Broker =====================
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: iot-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"      # MQTT 标准端口
+      - "9001:9001"      # WebSocket 端口
+    volumes:
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-log:/mosquitto/log
+    # 内置匿名访问与监听配置，便于演示
+    command: >
+      sh -c "echo 'allow_anonymous true' > /mosquitto/config/mosquitto.conf &&
+             echo 'listener 1883' >> /mosquitto/config/mosquitto.conf &&
+             echo 'listener 9001' >> /mosquitto/config/mosquitto.conf &&
+             echo 'protocol websockets' >> /mosquitto/config/mosquitto.conf &&
+             mosquitto -c /mosquitto/config/mosquitto.conf"
+    networks:
+      - iot-network
+
+  # ===================== InfluxDB 2.0 时序数据库 =====================
+  influxdb:
+    image: influxdb:2.7
+    container_name: iot-influxdb
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: admin123456
+      DOCKER_INFLUXDB_INIT_ORG: iot
+      DOCKER_INFLUXDB_INIT_BUCKET: device_data
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: iot-platform-token-very-long-secret-string
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+    networks:
+      - iot-network
+
+volumes:
+  mysql-data:
+  redis-data:
+  mosquitto-data:
+  mosquitto-log:
+  influxdb-data:
+
+networks:
+  iot-network:
+    driver: bridge
