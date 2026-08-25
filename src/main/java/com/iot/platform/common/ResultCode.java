@@ -44,7 +44,25 @@ public enum ResultCode {
     MQTT_ERROR(500001, "MQTT 通信异常"),
 
     /** 系统内部错误 */
-    INTERNAL_ERROR(500500, "系统内部错误");
+    INTERNAL_ERROR(500500, "系统内部错误"),
+
+    /** 未认证或token已过期 */
+    UNAUTHORIZED(401001, "未认证或token已过期"),
+
+    /** 无权限访问 */
+    FORBIDDEN(403001, "无权限访问"),
+
+    /** 用户不存在 */
+    USER_NOT_FOUND(404004, "用户不存在"),
+
+    /** 用户名已存在 */
+    USERNAME_EXISTS(409003, "用户名已存在"),
+
+    /** 用户名或密码错误 */
+    USERNAME_OR_PASSWORD_ERROR(401002, "用户名或密码错误"),
+
+    /** 账号已被禁用 */
+    USER_DISABLED(403002, "账号已被禁用");
 
     /** 状态码 */
     private final int code;

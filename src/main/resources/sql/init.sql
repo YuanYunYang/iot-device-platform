@@ -121,3 +121,22 @@ INSERT INTO `device` (`device_id`, `device_name`, `product_id`, `product_key`, `
 VALUES
 ('device_001', '会议室温湿度传感器', 1, 'temp_hum_sensor', 'secret_001', 'UNKNOWN', 'A栋3楼会议室', '演示设备'),
 ('device_002', '大厅智能开关', 2, 'smart_switch', 'secret_002', 'UNKNOWN', 'A栋1楼大厅', '演示设备');
+
+-- ==================== 系统用户表 ====================
+DROP TABLE IF EXISTS `sys_user`;
+CREATE TABLE `sys_user` (
+    `id`          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `username`    VARCHAR(64)  NOT NULL COMMENT '用户名',
+    `password`    VARCHAR(128) NOT NULL COMMENT '密码（BCrypt 加密存储）',
+    `role`        VARCHAR(32)  NOT NULL DEFAULT 'USER' COMMENT '角色：SUPER_ADMIN/SYSTEM_ADMIN/USER',
+    `status`      TINYINT      DEFAULT 1 COMMENT '状态：0-禁用 1-启用',
+    `create_time` DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted`     TINYINT      DEFAULT 0 COMMENT '逻辑删除：0-未删除 1-已删除',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_username` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统用户表';
+
+-- 默认超级管理员（用户名: admin，密码: admin123）
+INSERT INTO `sys_user` (`username`, `password`, `role`, `status`)
+VALUES ('admin', '$2a$10$N.ZOn9G6/YLFixAgoMn6SOaGMbWVn0r3Q8J8zv3T3T3oEMrAfK8m', 'SUPER_ADMIN', 1);

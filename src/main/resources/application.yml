@@ -92,6 +92,13 @@ iot:
     # 远程控制同步等待响应超时时间（秒），默认 30 秒
     response-timeout: 30
 
+# ===================== JWT 认证配置 =====================
+jwt:
+  # JWT 签名密钥（至少 32 字节）
+  secret: iotPlatformJwtSecretKey2026VeryLongSecretString
+  # Token 有效期（毫秒），默认 24 小时
+  expiration: 86400000
+
 # ===================== Knife4j 文档配置 =====================
 knife4j:
   enable: true
