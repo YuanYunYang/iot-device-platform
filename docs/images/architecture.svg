@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 720 600" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr-n1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M1 1 L7 4 L1 7 Z" fill="#52525B"/>
+    </marker>
+    <marker id="arr-b1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M1 1 L7 4 L1 7 Z" fill="#4B3FE3"/>
+    </marker>
+    <style>
+      .t { fill: #171717; font: 400 14px/20px "SF Pro Text","PingFang SC","Noto Sans CJK SC","WenQuanYi Micro Hei",system-ui,sans-serif; }
+      .th { fill: #171717; font: 500 16px/24px "SF Pro Text","PingFang SC","Noto Sans CJK SC","WenQuanYi Micro Hei",system-ui,sans-serif; }
+      .ts { fill: #52525B; font: 400 12px/18px "SF Pro Text","PingFang SC","Noto Sans CJK SC","WenQuanYi Micro Hei",system-ui,sans-serif; }
+      .tc { fill: #171717; font: 500 13px/20px "JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
+      .arr { stroke: #52525B; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .arr-brand { stroke: #4B3FE3; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; stroke-dasharray: 5 4; }
+      .boundary-fill { fill: #EFEFF2; }
+      .boundary-stroke { stroke: rgba(23,23,23,0.12); stroke-width: 1; stroke-dasharray: 6 4; fill: none; }
+      .node-n { fill: #F7F7F8; stroke: rgba(23,23,23,0.12); stroke-width: 1; }
+      .node-b { fill: #F2F7FF; stroke: #4B3FE3; stroke-width: 1.5; }
+      .node-e { fill: #F7F7F8; stroke: #52525B; stroke-width: 1; }
+      .lbl-bg { fill: #F7F7F8; }
+      .lbl-bg-brand { fill: #F2F7FF; }
+      .brand-text { fill: #1A1759; }
+      .brand-label { fill: #4B3FE3; }
+    </style>
+  </defs>
+
+  <!-- Title -->
+  <text x="360" y="20" text-anchor="middle" class="th">IoT 设备接入管控平台 — 架构总览</text>
+
+  <!-- 前端/客户端 (external pill) -->
+  <rect class="node-e" x="250" y="36" width="220" height="50" rx="25"/>
+  <text x="360" y="56" text-anchor="middle" class="th">前端 / 客户端</text>
+  <text x="360" y="72" text-anchor="middle" class="ts">REST API 请求 + WebSocket 实时订阅</text>
+
+  <!-- Platform boundary -->
+  <rect class="boundary-fill boundary-stroke" x="30" y="108" width="660" height="392" rx="12"/>
+  <text x="50" y="128" class="ts" style="font-weight:500">IoT 设备接入管控平台</text>
+
+  <!-- Controller -->
+  <rect class="node-n" x="75" y="148" width="170" height="56" rx="8"/>
+  <text x="160" y="172" text-anchor="middle" class="tc">Controller</text>
+  <text x="160" y="190" text-anchor="middle" class="ts">REST 接口入口</text>
+
+  <!-- WebSocketHandler -->
+  <rect class="node-n" x="475" y="148" width="170" height="56" rx="8"/>
+  <text x="560" y="172" text-anchor="middle" class="tc">WebSocketHandler</text>
+  <text x="560" y="190" text-anchor="middle" class="ts">实时推送</text>
+
+  <!-- Service (brand focal) -->
+  <rect class="node-b" x="200" y="240" width="200" height="56" rx="8"/>
+  <text x="300" y="264" text-anchor="middle" class="tc brand-text">Service</text>
+  <text x="300" y="282" text-anchor="middle" class="ts brand-label">业务逻辑</text>
+
+  <!-- AlarmService -->
+  <rect class="node-n" x="475" y="240" width="170" height="56" rx="8"/>
+  <text x="560" y="264" text-anchor="middle" class="tc">AlarmService</text>
+  <text x="560" y="282" text-anchor="middle" class="ts">告警引擎</text>
+
+  <!-- MqttClientMgr -->
+  <rect class="node-n" x="200" y="332" width="200" height="56" rx="8"/>
+  <text x="300" y="356" text-anchor="middle" class="tc">MqttClientMgr</text>
+  <text x="300" y="374" text-anchor="middle" class="ts">MQTT 客户端管理</text>
+
+  <!-- Data layer inner boundary -->
+  <rect class="boundary-fill boundary-stroke" x="75" y="412" width="570" height="72" rx="12"/>
+  <text x="95" y="432" class="ts" style="font-weight:500">数据层</text>
+
+  <!-- InfluxDB -->
+  <rect class="node-n" x="95" y="432" width="155" height="44" rx="8"/>
+  <text x="172" y="452" text-anchor="middle" class="tc">InfluxDB</text>
+  <text x="172" y="468" text-anchor="middle" class="ts">时序数据</text>
+
+  <!-- Redis -->
+  <rect class="node-n" x="280" y="432" width="155" height="44" rx="8"/>
+  <text x="357" y="452" text-anchor="middle" class="tc">Redis</text>
+  <text x="357" y="468" text-anchor="middle" class="ts">在线状态缓存</text>
+
+  <!-- MySQL -->
+  <rect class="node-n" x="465" y="432" width="155" height="44" rx="8"/>
+  <text x="542" y="452" text-anchor="middle" class="tc">MySQL</text>
+  <text x="542" y="468" text-anchor="middle" class="ts">业务关系数据</text>
+
+  <!-- IoT设备 (external pill) -->
+  <rect class="node-e" x="75" y="524" width="190" height="50" rx="25"/>
+  <text x="170" y="544" text-anchor="middle" class="th">IoT 设备</text>
+  <text x="170" y="560" text-anchor="middle" class="ts">温湿度传感器 / 智能开关</text>
+
+  <!-- MQTT Broker (external pill) -->
+  <rect class="node-e" x="455" y="524" width="190" height="50" rx="25"/>
+  <text x="550" y="544" text-anchor="middle" class="th">MQTT Broker</text>
+  <text x="550" y="560" text-anchor="middle" class="ts">Mosquitto</text>
+
+  <!-- Connectors -->
+  <!-- 1. 前端 → Controller: REST -->
+  <path class="arr" d="M 340 86 C 340 110, 160 120, 160 148" marker-end="url(#arr-n1)"/>
+  <rect class="lbl-bg" x="232" y="108" width="38" height="16" rx="4"/>
+  <text x="251" y="120" text-anchor="middle" class="ts">REST</text>
+
+  <!-- 2. WebSocketHandler → 前端: WebSocket 推送 -->
+  <path class="arr" d="M 560 148 C 560 120, 380 110, 380 86" marker-end="url(#arr-n1)"/>
+  <rect class="lbl-bg" x="430" y="108" width="80" height="16" rx="4"/>
+  <text x="470" y="120" text-anchor="middle" class="ts">WebSocket 推送</text>
+
+  <!-- 3. Controller → Service -->
+  <path class="arr" d="M 160 204 L 160 224 Q 160 240, 176 240 L 280 240" marker-end="url(#arr-n1)"/>
+
+  <!-- 4. Service → AlarmService -->
+  <path class="arr" d="M 400 268 L 475 268" marker-end="url(#arr-n1)"/>
+
+  <!-- 5. AlarmService → WebSocketHandler (告警推送) -->
+  <path class="arr" d="M 560 240 L 560 204" marker-end="url(#arr-n1)"/>
+
+  <!-- 6. Service → MqttClientMgr (brand primary path) -->
+  <path class="arr-brand" d="M 300 296 L 300 332" marker-end="url(#arr-b1)"/>
+
+  <!-- 7. Service → 数据层 (读写) -->
+  <path class="arr" d="M 400 268 C 430 268, 430 400, 430 432" marker-end="url(#arr-n1)"/>
+  <rect class="lbl-bg" x="412" y="346" width="36" height="16" rx="4"/>
+  <text x="430" y="358" text-anchor="middle" class="ts">读写</text>
+
+  <!-- 8. MqttClientMgr → MQTT Broker (下行指令, brand primary path) -->
+  <path class="arr-brand" d="M 400 388 C 440 388, 490 480, 510 524" marker-end="url(#arr-b1)"/>
+  <rect class="lbl-bg-brand" x="404" y="440" width="56" height="16" rx="4"/>
+  <text x="432" y="452" text-anchor="middle" class="ts brand-label">下行指令</text>
+
+  <!-- 9. MQTT Broker → IoT设备 (MQTT 上行/下行 bidirectional) -->
+  <path class="arr" d="M 455 549 L 265 549" marker-end="url(#arr-n1)"/>
+  <path class="arr" d="M 265 539 L 455 539" marker-end="url(#arr-n1)"/>
+  <rect class="lbl-bg" x="306" y="528" width="108" height="16" rx="4"/>
+  <text x="360" y="540" text-anchor="middle" class="ts">MQTT 上行 / 下行</text>
+
+  <!-- 10. IoT设备 ← MqttClientMgr (控制指令, implied through broker) -->
+  <path class="arr" d="M 170 524 C 170 480, 200 420, 200 388" stroke-dasharray="4 4" marker-end="url(#arr-n1)"/>
+  <rect class="lbl-bg" x="118" y="448" width="60" height="16" rx="4"/>
+  <text x="148" y="460" text-anchor="middle" class="ts">控制指令</text>
+
+</svg>
