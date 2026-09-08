@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iot.platform.repository.EnergyMeterMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.iot.platform.model.entity.EnergyMeter">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="meter_code" property="meterCode"/>
+        <result column="meter_name" property="meterName"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="meter_type" property="meterType"/>
+        <result column="protocol" property="protocol"/>
+        <result column="location" property="location"/>
+        <result column="product_id" property="productId"/>
+        <result column="modbus_addr" property="modbusAddr"/>
+        <result column="modbus_port" property="modbusPort"/>
+        <result column="ct_ratio" property="ctRatio"/>
+        <result column="pt_ratio" property="ptRatio"/>
+        <result column="rated_power" property="ratedPower"/>
+        <result column="status" property="status"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, meter_code, meter_name, device_id, meter_type, protocol, location,
+        product_id, modbus_addr, modbus_port, ct_ratio, pt_ratio, rated_power,
+        status, remark, create_time, update_time, deleted
+    </sql>
+
+    <!-- 根据仪表编号查询仪表 -->
+    <select id="selectByMeterCode" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM energy_meter
+        WHERE meter_code = #{meterCode} AND deleted = 0
+    </select>
+
+</mapper>

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iot.platform.common.JwtUtils;
 import com.iot.platform.common.Result;
 import com.iot.platform.common.ResultCode;
+import com.iot.platform.tenant.TenantContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -63,15 +64,30 @@ public class AuthInterceptor implements HandlerInterceptor {
         try {
             String username = jwtUtils.getUsernameFromToken(token);
             String role = jwtUtils.getRoleFromToken(token);
+            Long tenantId = jwtUtils.getTenantIdFromToken(token);
             // 将用户信息存入 request attribute
             request.setAttribute(CURRENT_USERNAME, username);
             request.setAttribute(CURRENT_ROLE, role);
+            // 注入租户上下文（MyBatis-Plus 自动追加 tenant_id 条件）
+            if (tenantId != null) {
+                TenantContext.setTenantId(tenantId);
+            }
+            // 超管可跨租户操作
+            if ("SUPER_ADMIN".equals(role)) {
+                TenantContext.setIgnore(true);
+            }
             return true;
         } catch (Exception e) {
             log.warn("Token 解析失败: {}", e.getMessage());
             writeUnauthorized(response, ResultCode.UNAUTHORIZED);
             return false;
         }
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+        // 清除租户上下文，防止线程池内存泄漏
+        TenantContext.clear();
     }
 
     /**

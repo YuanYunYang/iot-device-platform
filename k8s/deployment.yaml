@@ -1,0 +1,148 @@
+# ============================================================
+# IoT 设备接入管控平台 - Kubernetes 部署清单
+# ============================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: iot-platform
+---
+# ==================== ConfigMap ====================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: iot-platform-config
+  namespace: iot-platform
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+  DB_HOST: "mysql-master.iot-platform.svc.cluster.local"
+  DB_SLAVE_HOST: "mysql-slave.iot-platform.svc.cluster.local"
+  REDIS_HOST: "redis.iot-platform.svc.cluster.local"
+  KAFKA_SERVERS: "kafka.iot-platform.svc.cluster.local:9092"
+  MQTT_HOST: "emqx.iot-platform.svc.cluster.local"
+  INFLUX_HOST: "influxdb.iot-platform.svc.cluster.local"
+  LOG_LEVEL: "info"
+---
+# ==================== Secret ====================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: iot-platform-secret
+  namespace: iot-platform
+type: Opaque
+stringData:
+  DB_PASSWORD: "root123456"
+  DB_USER: "root"
+  REDIS_PASSWORD: "redis123456"
+  JWT_SECRET: "iotPlatformJwtSecretKey2026VeryLongSecretString"
+  INFLUX_TOKEN: "iot-platform-token-very-long-secret-string"
+---
+# ==================== Deployment ====================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iot-platform
+  namespace: iot-platform
+  labels:
+    app: iot-platform
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: iot-platform
+  template:
+    metadata:
+      labels:
+        app: iot-platform
+    spec:
+      containers:
+        - name: iot-platform
+          image: yuanyunyang/iot-device-platform:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: iot-platform-config
+            - secretRef:
+                name: iot-platform-secret
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "1536Mi"
+          livenessProbe:
+            httpGet:
+              path: /iot/actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /iot/actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+# ==================== Service ====================
+apiVersion: v1
+kind: Service
+metadata:
+  name: iot-platform
+  namespace: iot-platform
+spec:
+  selector:
+    app: iot-platform
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
+# ==================== HPA 自动扩缩容 ====================
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: iot-platform-hpa
+  namespace: iot-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: iot-platform
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+# ==================== Ingress ====================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: iot-platform-ingress
+  namespace: iot-platform
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+spec:
+  rules:
+    - host: iot.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: iot-platform
+                port:
+                  number: 8080

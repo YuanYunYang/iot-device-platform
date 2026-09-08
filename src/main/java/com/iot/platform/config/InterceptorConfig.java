@@ -20,18 +20,19 @@ public class InterceptorConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        // 注意：Spring 的路径模式匹配会去掉 context-path（/iot）后再匹配
-        // 因此 excludePathPatterns 中的路径不包含 /iot 前缀
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(
                         "/auth/**",
+                        // EMQX HTTP Auth/ACL 回调（无 JWT，供 Broker 直接回调）
+                        "/mqtt/**",
                         "/doc.html",
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
                         "/webjars/**",
                         "/favicon.ico",
-                        "/error"
+                        "/error",
+                        "/actuator/**"
                 );
     }
 }

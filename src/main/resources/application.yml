@@ -1,14 +1,26 @@
 # ============================================================
-# IoT 设备接入管控平台 - 应用配置
+# IoT 设备接入管控平台 - SaaS 化配置
 # ============================================================
 server:
   port: 8080
   servlet:
     context-path: /iot
+  # 生产级 Tomcat 调优
+  tomcat:
+    threads:
+      max: 400
+      min-spare: 20
+    max-connections: 8192
+    accept-count: 200
+    connection-timeout: 10000
 
 spring:
   application:
     name: iot-device-platform
+
+  # ===================== 激活配置文件 =====================
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
 
   # ===================== Jackson 序列化 =====================
   jackson:
@@ -16,27 +28,75 @@ spring:
     time-zone: Asia/Shanghai
     default-property-inclusion: non_null
 
-  # ===================== MySQL 数据源 =====================
+  # ===================== 读写分离动态数据源 =====================
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/iot_platform?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: root123456
+    dynamic:
+      primary: master
+      strict: false
+      datasource:
+        # 主库（写）
+        master:
+          url: jdbc:mysql://${DB_HOST:localhost}:3306/iot_platform?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
+          username: ${DB_USER:root}
+          password: ${DB_PASSWORD:root123456}
+          driver-class-name: com.mysql.cj.jdbc.Driver
+        # 从库（读）
+        slave:
+          url: jdbc:mysql://${DB_SLAVE_HOST:localhost}:3307/iot_platform?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+          username: ${DB_USER:root}
+          password: ${DB_PASSWORD:root123456}
+          driver-class-name: com.mysql.cj.jdbc.Driver
+      hikari:
+        # 连接池调优（单节点 20 连接，支持 400 并发请求）
+        max-pool-size: 20
+        min-idle: 5
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+        connection-test-query: SELECT 1
 
-  # ===================== Redis 缓存 =====================
+  # ===================== Redis 缓存（生产环境哨兵模式） =====================
   data:
     redis:
-      host: localhost
-      port: 6379
-      password: redis123456
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:redis123456}
       database: 0
       timeout: 5000ms
       lettuce:
         pool:
-          max-active: 8
-          max-idle: 4
-          min-idle: 2
+          max-active: 32
+          max-idle: 16
+          min-idle: 4
           max-wait: 3000ms
+        # 集群模式（按需启用）
+        # cluster:
+        #   nodes: redis-1:6379,redis-2:6379,redis-3:6379
+        #   max-redirects: 3
+
+  # ===================== Kafka 设备消息队列 =====================
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: 1
+      batch-size: 16384
+      linger-ms: 10
+      retries: 3
+      buffer-memory: 33554432
+    consumer:
+      group-id: iot-platform-group
+      auto-offset-reset: latest
+      enable-auto-commit: false
+      max-poll-records: 500
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    listener:
+      ack-mode: manual_immediate
+      concurrency: 3
 
 # ===================== MyBatis-Plus 配置 =====================
 mybatis-plus:
@@ -52,51 +112,40 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
-# ===================== MQTT 配置 =====================
+# ===================== MQTT 配置（EMQX 集群） =====================
 mqtt:
-  # MQTT Broker 地址
-  host: tcp://localhost:1883
-  # 客户端 ID（平台作为 MQTT 客户端）
-  client-id: iot-platform-server
-  # 用户名 / 密码（Mosquitto 匿名模式下可留空）
-  username: ""
-  password: ""
-  # 默认 QoS
+  # EMQX 集群地址（负载均衡后入口）
+  host: tcp://${MQTT_HOST:localhost}:${MQTT_PORT:1883}
+  # 客户端 ID（多实例部署时需唯一，使用随机后缀）
+  client-id: iot-platform-${random.uuid}
+  username: ${MQTT_USER:}
+  password: ${MQTT_PASSWORD:}
   qos: 1
-  # 心跳保活（秒）
   keep-alive-interval: 60
-  # 连接超时（秒）
   connection-timeout: 30
-  # 是否清除会话
   clean-session: false
-  # 自动重连
   automatic-reconnect: true
-  # 订阅的设备主题前缀，使用通配符订阅所有设备消息
-  topic-prefix: iot/device/#
+  # 共享订阅：多实例部署时消息不会重复消费
+  topic-prefix: $share/iot-platform/iot/device/#
 
 # ===================== InfluxDB 2.0 配置 =====================
 influxdb:
-  url: http://localhost:8086
-  token: iot-platform-token-very-long-secret-string
+  url: http://${INFLUX_HOST:localhost}:8086
+  token: ${INFLUX_TOKEN:iot-platform-token-very-long-secret-string}
   org: iot
   bucket: device_data
 
 # ===================== 设备心跳检测配置 =====================
 iot:
   heartbeat:
-    # 心跳扫描间隔（毫秒），默认 60 秒
     scan-interval: 60000
-    # 心跳超时阈值（秒），超过该时间未上报即视为离线，默认 90 秒
     timeout: 90
   control:
-    # 远程控制同步等待响应超时时间（秒），默认 30 秒
     response-timeout: 30
 
 # ===================== JWT 认证配置 =====================
 jwt:
-  # JWT 签名密钥（至少 32 字节）
-  secret: iotPlatformJwtSecretKey2026VeryLongSecretString
-  # Token 有效期（毫秒），默认 24 小时
+  secret: ${JWT_SECRET:iotPlatformJwtSecretKey2026VeryLongSecretString}
   expiration: 86400000
 
 # ===================== Knife4j 文档配置 =====================
@@ -117,10 +166,31 @@ springdoc:
       paths-to-match: /**
       packages-to-scan: com.iot.platform.controller
 
+# ===================== Actuator 监控端点 =====================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env,configprops,loggers
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.95, 0.99
+
 # ===================== 日志配置 =====================
 logging:
   level:
-    com.iot.platform: debug
+    com.iot.platform: ${LOG_LEVEL:debug}
     org.eclipse.paho: info
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

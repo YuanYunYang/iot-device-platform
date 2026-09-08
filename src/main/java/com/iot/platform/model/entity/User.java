@@ -23,6 +23,9 @@ public class User implements Serializable {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    /** 租户ID（多租户隔离） */
+    private Long tenantId;
+
     /** 用户名 */
     private String username;
 

@@ -62,7 +62,16 @@ public enum ResultCode {
     USERNAME_OR_PASSWORD_ERROR(401002, "用户名或密码错误"),
 
     /** 账号已被禁用 */
-    USER_DISABLED(403002, "账号已被禁用");
+    USER_DISABLED(403002, "账号已被禁用"),
+
+    /** 接口限流 */
+    RATE_LIMITED(429001, "请求过于频繁，请稍后重试"),
+
+    /** 租户不存在或已禁用 */
+    TENANT_DISABLED(403003, "租户不存在或已禁用"),
+
+    /** 设备数量超出租户套餐限制 */
+    DEVICE_LIMIT_EXCEEDED(409004, "设备数量已超出当前套餐限制");
 
     /** 状态码 */
     private final int code;

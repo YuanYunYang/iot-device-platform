@@ -1,3389 +1,662 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IoT 设备接入管控平台</title>
-  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-  <style>
-    /* ==================== CSS 变量 ==================== */
-    :root {
-      --bg-primary: #0a0e1a;
-      --bg-secondary: #0f1525;
-      --bg-card: #161c2c;
-      --bg-card-hover: #1c2438;
-      --bg-input: #0d1320;
-      --border-color: #2a3142;
-      --border-light: #1e2535;
-      --text-primary: #e2e8f0;
-      --text-secondary: #94a3b8;
-      --text-muted: #64748b;
-      --accent-blue: #00d4ff;
-      --accent-cyan: #22d3ee;
-      --accent-green: #10b981;
-      --accent-red: #ef4444;
-      --accent-orange: #f59e0b;
-      --accent-yellow: #fbbf24;
-      --accent-purple: #a78bfa;
-      --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3);
-      --shadow-glow: 0 0 20px rgba(0, 212, 255, 0.15);
-      --radius-sm: 6px;
-      --radius-md: 10px;
-      --radius-lg: 14px;
-      --sidebar-width: 230px;
-      --transition: all 0.25s ease;
-    }
-
-    /* ==================== 基础重置 ==================== */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    html, body {
-      height: 100%;
-      overflow: hidden;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-        "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      font-size: 14px;
-      line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    /* 滚动条 */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: var(--border-color);
-      border-radius: 3px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: var(--text-muted);
-    }
-
-    /* ==================== 布局 ==================== */
-    .app-layout {
-      display: flex;
-      height: 100vh;
-    }
-
-    /* ==================== 侧边栏 ==================== */
-    .sidebar {
-      width: var(--sidebar-width);
-      background: var(--bg-secondary);
-      border-right: 1px solid var(--border-color);
-      display: flex;
-      flex-direction: column;
-      flex-shrink: 0;
-      z-index: 100;
-    }
-
-    .sidebar-logo {
-      padding: 20px 22px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .sidebar-logo .logo-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: var(--radius-sm);
-      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      box-shadow: 0 0 16px rgba(0, 212, 255, 0.4);
-    }
-
-    .sidebar-logo .logo-icon svg {
-      width: 20px;
-      height: 20px;
-      color: var(--bg-primary);
-    }
-
-    .sidebar-logo .logo-text {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text-primary);
-      line-height: 1.3;
-    }
-
-    .sidebar-logo .logo-text span {
-      display: block;
-      font-size: 11px;
-      font-weight: 400;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-
-    .sidebar-nav {
-      flex: 1;
-      padding: 16px 12px;
-      overflow-y: auto;
-    }
-
-    .nav-section-title {
-      font-size: 11px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      padding: 8px 12px 6px;
-      margin-top: 8px;
-    }
-
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 11px 14px;
-      border-radius: var(--radius-sm);
-      color: var(--text-secondary);
-      cursor: pointer;
-      transition: var(--transition);
-      margin-bottom: 4px;
-      font-size: 14px;
-      position: relative;
-    }
-
-    .nav-item:hover {
-      background: var(--bg-card);
-      color: var(--text-primary);
-    }
-
-    .nav-item.active {
-      background: linear-gradient(90deg, rgba(0, 212, 255, 0.12), transparent);
-      color: var(--accent-blue);
-    }
-
-    .nav-item.active::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 3px;
-      height: 60%;
-      background: var(--accent-blue);
-      border-radius: 0 3px 3px 0;
-      box-shadow: 0 0 8px var(--accent-blue);
-    }
-
-    .nav-item svg {
-      width: 18px;
-      height: 18px;
-      flex-shrink: 0;
-    }
-
-    .sidebar-footer {
-      padding: 16px 22px;
-      border-top: 1px solid var(--border-color);
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .sidebar-footer .status-dot {
-      display: inline-block;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--accent-green);
-      margin-right: 6px;
-      box-shadow: 0 0 6px var(--accent-green);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-
-    /* ==================== 主内容区 ==================== */
-    .main-wrapper {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .topbar {
-      height: 60px;
-      background: var(--bg-secondary);
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 24px;
-      flex-shrink: 0;
-    }
-
-    .topbar-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    .topbar-title span {
-      color: var(--text-muted);
-      font-weight: 400;
-      font-size: 13px;
-      margin-left: 10px;
-    }
-
-    .topbar-right {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-
-    .topbar-time {
-      font-size: 13px;
-      color: var(--text-secondary);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .topbar-user {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      color: var(--text-secondary);
-    }
-
-    .topbar-user .avatar {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--bg-primary);
-    }
-
-    .content-area {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px;
-    }
-
-    /* ==================== 页面 ==================== */
-    .page {
-      display: none;
-      animation: fadeIn 0.3s ease;
-    }
-
-    .page.active {
-      display: block;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ==================== 统计卡片 ==================== */
-    .stat-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .stat-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 20px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      transition: var(--transition);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .stat-card::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-      opacity: 0.6;
-    }
-
-    .stat-card.blue::after { background: linear-gradient(90deg, var(--accent-blue), transparent); }
-    .stat-card.green::after { background: linear-gradient(90deg, var(--accent-green), transparent); }
-    .stat-card.gray::after { background: linear-gradient(90deg, var(--text-muted), transparent); }
-    .stat-card.red::after { background: linear-gradient(90deg, var(--accent-red), transparent); }
-
-    .stat-card:hover {
-      background: var(--bg-card-hover);
-      border-color: var(--accent-blue);
-      transform: translateY(-2px);
-    }
-
-    .stat-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: var(--radius-sm);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .stat-icon.blue { background: rgba(0, 212, 255, 0.12); color: var(--accent-blue); }
-    .stat-icon.green { background: rgba(16, 185, 129, 0.12); color: var(--accent-green); }
-    .stat-icon.gray { background: rgba(100, 116, 139, 0.12); color: var(--text-muted); }
-    .stat-icon.red { background: rgba(239, 68, 68, 0.12); color: var(--accent-red); }
-
-    .stat-icon svg { width: 24px; height: 24px; }
-
-    .stat-info { flex: 1; }
-
-    .stat-label {
-      font-size: 13px;
-      color: var(--text-secondary);
-      margin-bottom: 4px;
-    }
-
-    .stat-value {
-      font-size: 26px;
-      font-weight: 700;
-      color: var(--text-primary);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .stat-trend {
-      font-size: 12px;
-      margin-top: 2px;
-    }
-
-    .stat-trend.up { color: var(--accent-green); }
-    .stat-trend.down { color: var(--accent-red); }
-
-    /* ==================== 卡片容器 ==================== */
-    .panel {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      overflow: hidden;
-    }
-
-    .panel-header {
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .panel-title {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text-primary);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .panel-title svg { width: 16px; height: 16px; color: var(--accent-blue); }
-
-    .panel-body { padding: 0; }
-
-    /* ==================== 工具栏 ==================== */
-    .toolbar {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .search-box {
-      position: relative;
-      flex: 1;
-      max-width: 320px;
-    }
-
-    .search-box svg {
-      position: absolute;
-      left: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 16px;
-      height: 16px;
-      color: var(--text-muted);
-    }
-
-    .search-box input {
-      width: 100%;
-      padding: 8px 12px 8px 34px;
-      background: var(--bg-input);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      color: var(--text-primary);
-      font-size: 13px;
-      transition: var(--transition);
-    }
-
-    .search-box input::placeholder { color: var(--text-muted); }
-    .search-box input:focus {
-      outline: none;
-      border-color: var(--accent-blue);
-      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.1);
-    }
-
-    .filter-select {
-      padding: 8px 30px 8px 12px;
-      background: var(--bg-input);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      color: var(--text-primary);
-      font-size: 13px;
-      cursor: pointer;
-      appearance: none;
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
-      background-repeat: no-repeat;
-      background-position: right 8px center;
-      background-size: 14px;
-    }
-
-    .filter-select:focus {
-      outline: none;
-      border-color: var(--accent-blue);
-    }
-
-    .btn {
-      padding: 8px 16px;
-      border-radius: var(--radius-sm);
-      font-size: 13px;
-      cursor: pointer;
-      border: none;
-      transition: var(--transition);
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      white-space: nowrap;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
-      color: var(--bg-primary);
-      font-weight: 600;
-    }
-    .btn-primary:hover { box-shadow: 0 0 16px rgba(0, 212, 255, 0.4); }
-
-    .btn-ghost {
-      background: transparent;
-      border: 1px solid var(--border-color);
-      color: var(--text-secondary);
-    }
-    .btn-ghost:hover {
-      border-color: var(--accent-blue);
-      color: var(--accent-blue);
-    }
-
-    .btn-sm {
-      padding: 5px 12px;
-      font-size: 12px;
-    }
-
-    .btn svg { width: 14px; height: 14px; }
-
-    /* ==================== 表格 ==================== */
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    .data-table thead th {
-      background: var(--bg-secondary);
-      padding: 12px 16px;
-      text-align: left;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      border-bottom: 1px solid var(--border-color);
-      white-space: nowrap;
-    }
-
-    .data-table tbody td {
-      padding: 14px 16px;
-      font-size: 13px;
-      color: var(--text-primary);
-      border-bottom: 1px solid var(--border-light);
-    }
-
-    .data-table tbody tr:nth-child(even) {
-      background: rgba(15, 21, 37, 0.5);
-    }
-
-    .data-table tbody tr:hover {
-      background: var(--bg-card-hover);
-    }
-
-    .data-table tbody tr:last-child td {
-      border-bottom: none;
-    }
-
-    .table-container {
-      overflow-x: auto;
-    }
-
-    .cell-id {
-      font-family: "SF Mono", "Fira Code", monospace;
-      color: var(--accent-blue);
-      font-size: 12px;
-    }
-
-    .cell-time {
-      color: var(--text-secondary);
-      font-size: 12px;
-      white-space: nowrap;
-    }
-
-    /* ==================== 状态标签 ==================== */
-    .status-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 3px 10px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 500;
-    }
-
-    .status-tag .dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-    }
-
-    .status-tag.online {
-      background: rgba(16, 185, 129, 0.12);
-      color: var(--accent-green);
-    }
-    .status-tag.online .dot {
-      background: var(--accent-green);
-      box-shadow: 0 0 6px var(--accent-green);
-    }
-
-    .status-tag.offline {
-      background: rgba(100, 116, 139, 0.12);
-      color: var(--text-muted);
-    }
-    .status-tag.offline .dot { background: var(--text-muted); }
-
-    /* ==================== 告警级别标签 ==================== */
-    .alarm-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 3px 10px;
-      border-radius: var(--radius-sm);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
-
-    .alarm-tag.critical {
-      background: rgba(239, 68, 68, 0.15);
-      color: var(--accent-red);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-    }
-    .alarm-tag.warning {
-      background: rgba(245, 158, 11, 0.15);
-      color: var(--accent-orange);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-    }
-    .alarm-tag.info {
-      background: rgba(0, 212, 255, 0.15);
-      color: var(--accent-blue);
-      border: 1px solid rgba(0, 212, 255, 0.3);
-    }
-
-    .alarm-tag .dot {
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-    }
-    .alarm-tag.critical .dot { background: var(--accent-red); }
-    .alarm-tag.warning .dot { background: var(--accent-orange); }
-    .alarm-tag.info .dot { background: var(--accent-blue); }
-
-    /* ==================== 实时监控页面 ==================== */
-    .monitor-layout {
-      display: flex;
-      gap: 16px;
-      height: 100%;
-    }
-
-    .monitor-device-list {
-      width: 260px;
-      flex-shrink: 0;
-    }
-
-    .device-list-item {
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--border-light);
-      cursor: pointer;
-      transition: var(--transition);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .device-list-item:hover { background: var(--bg-card-hover); }
-
-    .device-list-item.active {
-      background: rgba(0, 212, 255, 0.08);
-      border-left: 3px solid var(--accent-blue);
-    }
-
-    .device-list-item .device-info { flex: 1; min-width: 0; }
-
-    .device-list-item .device-name {
-      font-size: 13px;
-      color: var(--text-primary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .device-list-item .device-id {
-      font-size: 11px;
-      color: var(--text-muted);
-      font-family: monospace;
-    }
-
-    .monitor-content {
-      flex: 1;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .prop-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-    }
-
-    .prop-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 18px;
-      transition: var(--transition);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .prop-card:hover {
-      border-color: var(--accent-blue);
-      transform: translateY(-2px);
-    }
-
-    .prop-card .prop-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-
-    .prop-card .prop-label {
-      font-size: 13px;
-      color: var(--text-secondary);
-    }
-
-    .prop-card .prop-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: var(--radius-sm);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .prop-card .prop-icon svg { width: 18px; height: 18px; }
-
-    .prop-card .prop-value {
-      font-size: 28px;
-      font-weight: 700;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .prop-card .prop-unit {
-      font-size: 14px;
-      font-weight: 400;
-      color: var(--text-secondary);
-      margin-left: 4px;
-    }
-
-    .chart-container {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 16px 20px;
-    }
-
-    .chart-container .chart-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
-    }
-
-    .chart-container .chart-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-primary);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .chart-container .chart-title .indicator {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-
-    .chart-box {
-      width: 100%;
-      height: 280px;
-    }
-
-    .device-info-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-    }
-
-    .info-item {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 16px;
-    }
-
-    .info-item .info-label {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-bottom: 6px;
-    }
-
-    .info-item .info-value {
-      font-size: 15px;
-      color: var(--text-primary);
-      font-weight: 500;
-      font-family: monospace;
-    }
-
-    /* ==================== 物模型管理 ==================== */
-    .product-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .product-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 20px;
-      cursor: pointer;
-      transition: var(--transition);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .product-card:hover {
-      border-color: var(--accent-blue);
-      transform: translateY(-2px);
-    }
-
-    .product-card.active {
-      border-color: var(--accent-blue);
-      background: linear-gradient(135deg, rgba(0, 212, 255, 0.06), transparent);
-    }
-
-    .product-card.active::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: var(--accent-blue);
-    }
-
-    .product-card .product-top {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-bottom: 16px;
-    }
-
-    .product-card .product-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: var(--radius-sm);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .product-card .product-icon svg { width: 24px; height: 24px; }
-
-    .product-card .product-name {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    .product-card .product-desc {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-
-    .product-card .product-stats {
-      display: flex;
-      gap: 24px;
-      padding-top: 14px;
-      border-top: 1px solid var(--border-light);
-    }
-
-    .product-card .product-stat .num {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--accent-blue);
-    }
-
-    .product-card .product-stat .label {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    /* ==================== 远程控制 ==================== */
-    .control-layout {
-      display: flex;
-      gap: 16px;
-    }
-
-    .control-panel {
-      flex: 1;
-    }
-
-    .control-body {
-      padding: 24px;
-    }
-
-    .control-group {
-      margin-bottom: 24px;
-    }
-
-    .control-group:last-child { margin-bottom: 0; }
-
-    .control-label {
-      font-size: 13px;
-      color: var(--text-secondary);
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .switch-control {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .switch {
-      position: relative;
-      width: 56px;
-      height: 28px;
-      background: var(--bg-input);
-      border: 1px solid var(--border-color);
-      border-radius: 14px;
-      cursor: pointer;
-      transition: var(--transition);
-    }
-
-    .switch::after {
-      content: '';
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      background: var(--text-muted);
-      transition: var(--transition);
-    }
-
-    .switch.on {
-      background: rgba(0, 212, 255, 0.2);
-      border-color: var(--accent-blue);
-    }
-
-    .switch.on::after {
-      left: 30px;
-      background: var(--accent-blue);
-      box-shadow: 0 0 10px var(--accent-blue);
-    }
-
-    .switch-status {
-      font-size: 13px;
-      color: var(--text-secondary);
-    }
-    .switch-status.on { color: var(--accent-green); }
-
-    .slider-control {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .slider {
-      flex: 1;
-      -webkit-appearance: none;
-      appearance: none;
-      height: 6px;
-      background: var(--bg-input);
-      border-radius: 3px;
-      outline: none;
-      border: 1px solid var(--border-color);
-    }
-
-    .slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: var(--accent-blue);
-      cursor: pointer;
-      box-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
-    }
-
-    .slider::-moz-range-thumb {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: var(--accent-blue);
-      cursor: pointer;
-      border: none;
-      box-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
-    }
-
-    .slider-value {
-      min-width: 70px;
-      text-align: right;
-      font-size: 14px;
-      color: var(--accent-blue);
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .select-control {
-      width: 100%;
-      padding: 10px 30px 10px 12px;
-      background: var(--bg-input);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      color: var(--text-primary);
-      font-size: 13px;
-      cursor: pointer;
-      appearance: none;
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
-      background-repeat: no-repeat;
-      background-position: right 10px center;
-      background-size: 14px;
-    }
-
-    .command-log {
-      flex: 1;
-    }
-
-    .response-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 2px 8px;
-      border-radius: var(--radius-sm);
-      font-size: 11px;
-      font-weight: 500;
-    }
-
-    .response-tag.success {
-      background: rgba(16, 185, 129, 0.12);
-      color: var(--accent-green);
-    }
-    .response-tag.timeout {
-      background: rgba(239, 68, 68, 0.12);
-      color: var(--accent-red);
-    }
-    .response-tag.pending {
-      background: rgba(245, 158, 11, 0.12);
-      color: var(--accent-orange);
-    }
-
-    /* ==================== Toast ==================== */
-    #toast-container {
-      position: fixed;
-      top: 80px;
-      right: 24px;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .toast {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 12px 18px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 13px;
-      color: var(--text-primary);
-      box-shadow: var(--shadow-card);
-      animation: slideIn 0.3s ease;
-      min-width: 260px;
-    }
-
-    .toast.success { border-left: 3px solid var(--accent-green); }
-    .toast.info { border-left: 3px solid var(--accent-blue); }
-    .toast.warning { border-left: 3px solid var(--accent-orange); }
-    .toast.error { border-left: 3px solid var(--accent-red); }
-
-    .toast .toast-icon {
-      width: 18px;
-      height: 18px;
-      flex-shrink: 0;
-    }
-
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateX(100px); }
-      to { opacity: 1; transform: translateX(0); }
-    }
-
-    /* ==================== 响应式 ==================== */
-    @media (max-width: 1024px) {
-      .stat-grid { grid-template-columns: repeat(2, 1fr); }
-      .prop-grid { grid-template-columns: repeat(2, 1fr); }
-      .device-info-grid { grid-template-columns: repeat(2, 1fr); }
-      .product-grid { grid-template-columns: 1fr; }
-      .monitor-device-list { width: 200px; }
-      .control-layout { flex-direction: column; }
-    }
-
-    @media (max-width: 768px) {
-      .sidebar { display: none; }
-      .stat-grid { grid-template-columns: 1fr; }
-      .prop-grid { grid-template-columns: 1fr; }
-      .device-info-grid { grid-template-columns: 1fr; }
-      .monitor-layout { flex-direction: column; }
-      .monitor-device-list { width: 100%; }
-    }
-
-    /* ==================== 登录页 ==================== */
-    .login-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: var(--bg-primary);
-      background-image:
-        radial-gradient(circle at 20% 30%, rgba(0, 212, 255, 0.08), transparent 40%),
-        radial-gradient(circle at 80% 70%, rgba(167, 139, 250, 0.06), transparent 40%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      animation: fadeIn 0.4s ease;
-    }
-
-    .login-overlay.hidden {
-      display: none;
-    }
-
-    .login-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      padding: 40px 36px;
-      width: 380px;
-      max-width: 90%;
-      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4), 0 0 40px rgba(0, 212, 255, 0.08);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .login-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan), var(--accent-purple));
-    }
-
-    .login-logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 28px;
-    }
-
-    .login-logo .logo-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: var(--radius-sm);
-      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
-    }
-
-    .login-logo .logo-icon svg {
-      width: 24px;
-      height: 24px;
-      color: var(--bg-primary);
-    }
-
-    .login-logo .logo-text {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    .login-logo .logo-text span {
-      display: block;
-      font-size: 12px;
-      font-weight: 400;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-
-    .login-title {
-      font-size: 20px;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin-bottom: 6px;
-    }
-
-    .login-subtitle {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 24px;
-    }
-
-    .form-group {
-      margin-bottom: 18px;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 13px;
-      color: var(--text-secondary);
-      margin-bottom: 6px;
-    }
-
-    .form-input {
-      width: 100%;
-      padding: 11px 14px;
-      background: var(--bg-input);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      color: var(--text-primary);
-      font-size: 14px;
-      transition: var(--transition);
-    }
-
-    .form-input::placeholder { color: var(--text-muted); }
-    .form-input:focus {
-      outline: none;
-      border-color: var(--accent-blue);
-      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
-    }
-
-    .form-select {
-      width: 100%;
-      padding: 11px 30px 11px 14px;
-      background: var(--bg-input);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      color: var(--text-primary);
-      font-size: 14px;
-      cursor: pointer;
-      appearance: none;
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
-      background-repeat: no-repeat;
-      background-position: right 10px center;
-      background-size: 14px;
-    }
-
-    .form-select:focus {
-      outline: none;
-      border-color: var(--accent-blue);
-    }
-
-    .btn-block {
-      width: 100%;
-      padding: 12px;
-      font-size: 14px;
-      justify-content: center;
-    }
-
-    .login-error {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      border-radius: var(--radius-sm);
-      padding: 10px 14px;
-      font-size: 13px;
-      color: var(--accent-red);
-      margin-bottom: 18px;
-      display: none;
-    }
-
-    .login-error.show { display: block; }
-
-    .login-hint {
-      font-size: 12px;
-      color: var(--text-muted);
-      text-align: center;
-      margin-top: 20px;
-      padding-top: 16px;
-      border-top: 1px solid var(--border-light);
-    }
-
-    /* ==================== 模态框 ==================== */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.6);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 9000;
-      animation: fadeIn 0.2s ease;
-    }
-
-    .modal-overlay.show { display: flex; }
-
-    .modal {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      width: 480px;
-      max-width: 90%;
-      max-height: 85vh;
-      overflow: hidden;
-      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
-      display: flex;
-      flex-direction: column;
-    }
-
-    .modal.wide { width: 640px; }
-
-    .modal-header {
-      padding: 18px 24px;
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-shrink: 0;
-    }
-
-    .modal-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-primary);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .modal-title svg { width: 18px; height: 18px; color: var(--accent-blue); }
-
-    .modal-close {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      padding: 4px;
-      transition: var(--transition);
-    }
-
-    .modal-close:hover { color: var(--accent-red); }
-    .modal-close svg { width: 20px; height: 20px; }
-
-    .modal-body {
-      padding: 24px;
-      overflow-y: auto;
-      flex: 1;
-    }
-
-    .modal-footer {
-      padding: 16px 24px;
-      border-top: 1px solid var(--border-color);
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-      flex-shrink: 0;
-    }
-
-    /* ==================== 角色标签 ==================== */
-    .role-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 3px 10px;
-      border-radius: var(--radius-sm);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
-
-    .role-tag.super-admin {
-      background: rgba(167, 139, 250, 0.15);
-      color: var(--accent-purple);
-      border: 1px solid rgba(167, 139, 250, 0.3);
-    }
-
-    .role-tag.system-admin {
-      background: rgba(0, 212, 255, 0.15);
-      color: var(--accent-blue);
-      border: 1px solid rgba(0, 212, 255, 0.3);
-    }
-
-    .role-tag.user {
-      background: rgba(100, 116, 139, 0.15);
-      color: var(--text-secondary);
-      border: 1px solid rgba(100, 116, 139, 0.3);
-    }
-
-    /* ==================== 用户状态标签 ==================== */
-    .user-status-tag.enabled {
-      background: rgba(16, 185, 129, 0.12);
-      color: var(--accent-green);
-    }
-
-    .user-status-tag.disabled {
-      background: rgba(239, 68, 68, 0.12);
-      color: var(--accent-red);
-    }
-
-    /* ==================== 登出按钮 ==================== */
-    .logout-btn {
-      background: none;
-      border: 1px solid var(--border-color);
-      color: var(--text-secondary);
-      padding: 5px 12px;
-      border-radius: var(--radius-sm);
-      font-size: 12px;
-      cursor: pointer;
-      transition: var(--transition);
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .logout-btn:hover {
-      border-color: var(--accent-red);
-      color: var(--accent-red);
-    }
-
-    .logout-btn svg { width: 14px; height: 14px; }
-
-    /* ==================== 表单行 ==================== */
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    /* ==================== 物模型编辑行 ==================== */
-    .thing-model-row {
-      display: grid;
-      grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1fr 1fr auto;
-      gap: 8px;
-      margin-bottom: 10px;
-      align-items: center;
-    }
-
-    .thing-model-row .form-input,
-    .thing-model-row .form-select {
-      padding: 8px 10px;
-      font-size: 12px;
-    }
-
-    .thing-model-row .btn-remove {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      color: var(--accent-red);
-      width: 32px;
-      height: 32px;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .thing-model-row .btn-remove svg { width: 14px; height: 14px; }
-
-    .btn-add-row {
-      background: rgba(0, 212, 255, 0.08);
-      border: 1px dashed var(--accent-blue);
-      color: var(--accent-blue);
-      padding: 8px 16px;
-      border-radius: var(--radius-sm);
-      font-size: 12px;
-      cursor: pointer;
-      transition: var(--transition);
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 4px;
-    }
-
-    .btn-add-row:hover { background: rgba(0, 212, 255, 0.15); }
-
-    @media (max-width: 768px) {
-      .modal { width: 95%; }
-      .form-row { grid-template-columns: 1fr; }
-      .thing-model-row { grid-template-columns: 1fr; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT 设备接入管控平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0f1117; --card: #1a1d29; --border: #2a2d3a;
+            --text: #e4e6eb; --text-dim: #8b8fa3; --primary: #4f8cf0;
+            --success: #22c55e; --warning: #f59e0b; --danger: #ef4444;
+            --info: #06b6d4; --radius: 12px;
+        }
+        body { font-family: -apple-system, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+        .layout { display: flex; min-height: 100vh; }
+
+        /* Sidebar */
+        .sidebar { width: 220px; background: var(--card); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+        .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); }
+        .sidebar-header h1 { font-size: 16px; font-weight: 700; color: var(--primary); }
+        .sidebar-header p { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+        .nav { flex: 1; padding: 12px 0; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; cursor: pointer; color: var(--text-dim); font-size: 14px; transition: all .2s; border-left: 3px solid transparent; }
+        .nav-item:hover { background: rgba(79,140,240,.08); color: var(--text); }
+        .nav-item.active { background: rgba(79,140,240,.12); color: var(--primary); border-left-color: var(--primary); }
+        .nav-icon { font-size: 18px; width: 24px; text-align: center; }
+
+        /* Main */
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; background: var(--card); border-bottom: 1px solid var(--border); }
+        .topbar-title { font-size: 16px; font-weight: 600; }
+        .topbar-right { display: flex; align-items: center; gap: 16px; }
+        .ws-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); }
+        .ws-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+        .ws-dot.connected { background: var(--success); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
+        .token-input { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; color: var(--text); font-size: 12px; width: 200px; }
+        .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+        /* Cards */
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+        .stat-card .label { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
+        .stat-card .value { font-size: 32px; font-weight: 700; }
+        .stat-card .sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+        .stat-card.online .value { color: var(--success); }
+        .stat-card.offline .value { color: var(--text-dim); }
+        .stat-card.alarm .value { color: var(--danger); }
+        .stat-card.total .value { color: var(--primary); }
+
+        /* Panel */
+        .panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 24px; }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+        .panel-title { font-size: 14px; font-weight: 600; }
+        .panel-body { padding: 20px; }
+
+        /* Grid */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 10px 12px; font-size: 12px; color: var(--text-dim); font-weight: 500; border-bottom: 1px solid var(--border); }
+        td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid var(--border); }
+        tr:hover td { background: rgba(255,255,255,.02); }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .badge-online { background: rgba(34,197,94,.15); color: var(--success); }
+        .badge-offline { background: rgba(139,143,163,.15); color: var(--text-dim); }
+        .badge-critical { background: rgba(239,68,68,.15); color: var(--danger); }
+        .badge-warning { background: rgba(245,158,11,.15); color: var(--warning); }
+        .badge-info { background: rgba(6,182,212,.15); color: var(--info); }
+
+        /* Chart */
+        .chart-container { position: relative; height: 260px; }
+
+        /* Alarm list */
+        .alarm-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .alarm-item:last-child { border-bottom: none; }
+        .alarm-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+        .alarm-icon.critical { background: rgba(239,68,68,.15); }
+        .alarm-icon.warning { background: rgba(245,158,11,.15); }
+        .alarm-icon.info { background: rgba(6,182,212,.15); }
+        .alarm-content { flex: 1; }
+        .alarm-title { font-size: 13px; font-weight: 500; }
+        .alarm-meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+        /* OTA progress */
+        .progress-bar { width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--primary); border-radius: 3px; transition: width .3s; }
+        .progress-text { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+        /* Rule editor */
+        .rule-editor { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: 'Courier New', monospace; font-size: 12px; color: var(--text); min-height: 120px; width: 100%; resize: vertical; }
+        .btn { padding: 6px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 12px; font-weight: 500; transition: all .2s; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { opacity: .85; }
+        .btn-sm { padding: 4px 10px; font-size: 11px; }
+        .btn-danger { background: rgba(239,68,68,.2); color: var(--danger); }
+        .btn-success { background: rgba(34,197,94,.2); color: var(--success); }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+        .tab { padding: 8px 16px; cursor: pointer; font-size: 13px; color: var(--text-dim); border-bottom: 2px solid transparent; }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        .page { display: none; }
+        .page.active { display: block; }
+
+        .empty { text-align: center; padding: 40px; color: var(--text-dim); font-size: 13px; }
+
+        /* Form */
+        .form-group { margin-bottom: 12px; }
+        .form-label { font-size: 12px; color: var(--text-dim); margin-bottom: 4px; display: block; }
+        .form-input { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; color: var(--text); font-size: 13px; width: 100%; }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body>
-  <!-- ==================== 登录页 ==================== -->
-  <div class="login-overlay" id="login-overlay">
-    <div class="login-card">
-      <div class="login-logo">
-        <div class="logo-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-            <path d="M2 17l10 5 10-5"/>
-            <path d="M2 12l10 5 10-5"/>
-          </svg>
+<div class="layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h1>IoT 管控平台</h1>
+            <p>SaaS Device Platform</p>
         </div>
-        <div class="logo-text">
-          IoT 管控平台
-          <span>Device Management System</span>
+        <div class="nav">
+            <div class="nav-item active" onclick="showPage('dashboard', this)"><span class="nav-icon">&#9632;</span> 总览看板</div>
+            <div class="nav-item" onclick="showPage('devices', this)"><span class="nav-icon">&#9641;</span> 设备管理</div>
+            <div class="nav-item" onclick="showPage('alarms', this)"><span class="nav-icon">&#9888;</span> 告警中心</div>
+            <div class="nav-item" onclick="showPage('ota', this)"><span class="nav-icon">&#8593;</span> OTA 升级</div>
+            <div class="nav-item" onclick="showPage('rules', this)"><span class="nav-icon">&#9881;</span> 规则引擎</div>
         </div>
-      </div>
-      <div class="login-title">欢迎登录</div>
-      <div class="login-subtitle">请输入您的账号密码进行登录</div>
-      <div class="login-error" id="login-error"></div>
-      <div class="form-group">
-        <label>用户名</label>
-        <input type="text" class="form-input" id="login-username" placeholder="请输入用户名" autocomplete="username">
-      </div>
-      <div class="form-group">
-        <label>密码</label>
-        <input type="password" class="form-input" id="login-password" placeholder="请输入密码" autocomplete="current-password">
-      </div>
-      <button class="btn btn-primary btn-block" id="login-btn" onclick="handleLogin()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-          <polyline points="10 17 15 12 10 7"/>
-          <line x1="15" y1="12" x2="3" y2="12"/>
-        </svg>
-        登 录
-      </button>
-      <div class="login-hint">默认超管账号：admin / admin123</div>
     </div>
-  </div>
 
-  <!-- ==================== 模态框：添加设备 ==================== -->
-  <div class="modal-overlay" id="modal-device">
-    <div class="modal">
-      <div class="modal-header">
-        <div class="modal-title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          添加设备
-        </div>
-        <button class="modal-close" onclick="closeModal('modal-device')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label>设备ID *</label>
-          <input type="text" class="form-input" id="device-form-id" placeholder="设备唯一标识，如 device_003">
-        </div>
-        <div class="form-group">
-          <label>设备名称</label>
-          <input type="text" class="form-input" id="device-form-name" placeholder="如：仓库温湿度传感器">
-        </div>
-        <div class="form-group">
-          <label>关联产品 *</label>
-          <select class="form-select" id="device-form-product"></select>
-        </div>
-        <div class="form-group">
-          <label>设备位置</label>
-          <input type="text" class="form-input" id="device-form-location" placeholder="如：B栋1楼仓库">
-        </div>
-        <div class="form-group">
-          <label>备注</label>
-          <input type="text" class="form-input" id="device-form-remark" placeholder="备注信息">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-ghost" onclick="closeModal('modal-device')">取消</button>
-        <button class="btn btn-primary" onclick="submitDeviceForm()">确认添加</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== 模态框：添加用户 ==================== -->
-  <div class="modal-overlay" id="modal-user">
-    <div class="modal">
-      <div class="modal-header">
-        <div class="modal-title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <line x1="19" y1="8" x2="19" y2="14"/>
-            <line x1="22" y1="11" x2="16" y2="11"/>
-          </svg>
-          添加用户
-        </div>
-        <button class="modal-close" onclick="closeModal('modal-user')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label>用户名 *</label>
-          <input type="text" class="form-input" id="user-form-username" placeholder="请输入用户名">
-        </div>
-        <div class="form-group">
-          <label>密码 *</label>
-          <input type="password" class="form-input" id="user-form-password" placeholder="请输入密码">
-        </div>
-        <div class="form-group">
-          <label>角色 *</label>
-          <select class="form-select" id="user-form-role"></select>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-ghost" onclick="closeModal('modal-user')">取消</button>
-        <button class="btn btn-primary" onclick="submitUserForm()">确认添加</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== 模态框：物模型管理 ==================== -->
-  <div class="modal-overlay" id="modal-thing-model">
-    <div class="modal wide">
-      <div class="modal-header">
-        <div class="modal-title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-            <line x1="12" y1="22.08" x2="12" y2="12"/>
-          </svg>
-          物模型管理 - <span id="thing-model-product-name"></span>
-        </div>
-        <button class="modal-close" onclick="closeModal('modal-thing-model')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-      <div class="modal-body">
-        <div style="display:flex; gap:8px; margin-bottom:12px; font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; padding: 0 4px;">
-          <div style="flex:1.5;">属性标识</div>
-          <div style="flex:1.5;">属性名称</div>
-          <div style="flex:1;">数据类型</div>
-          <div style="flex:1;">单位</div>
-          <div style="flex:1;">最小值</div>
-          <div style="flex:1;">最大值</div>
-          <div style="width:32px;"></div>
-        </div>
-        <div id="thing-model-rows"></div>
-        <button class="btn-add-row" onclick="addThingModelRow()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          添加属性
-        </button>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-ghost" onclick="closeModal('modal-thing-model')">取消</button>
-        <button class="btn btn-primary" onclick="submitThingModelForm()">保存物模型</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="app-layout">
-    <!-- ==================== 侧边栏 ==================== -->
-    <aside class="sidebar">
-      <div class="sidebar-logo">
-        <div class="logo-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-            <path d="M2 17l10 5 10-5"/>
-            <path d="M2 12l10 5 10-5"/>
-          </svg>
-        </div>
-        <div class="logo-text">
-          IoT 管控平台
-          <span>Device Management</span>
-        </div>
-      </div>
-
-      <nav class="sidebar-nav">
-        <div class="nav-section-title">主导航</div>
-        <div class="nav-item active" data-page="overview">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="7" height="7" rx="1"/>
-            <rect x="14" y="3" width="7" height="7" rx="1"/>
-            <rect x="3" y="14" width="7" height="7" rx="1"/>
-            <rect x="14" y="14" width="7" height="7" rx="1"/>
-          </svg>
-          <span>设备总览</span>
-        </div>
-        <div class="nav-item" data-page="monitor">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-          </svg>
-          <span>实时监控</span>
-        </div>
-        <div class="nav-item" data-page="model">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-            <line x1="12" y1="22.08" x2="12" y2="12"/>
-          </svg>
-          <span>物模型管理</span>
-        </div>
-
-        <div class="nav-section-title">运维管理</div>
-        <div class="nav-item" data-page="alarm">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
-          <span>告警监控</span>
-        </div>
-        <div class="nav-item" data-page="control">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M12 1v6m0 6v6"/>
-            <path d="M4.22 4.22l4.24 4.24m7.08 7.08l4.24 4.24"/>
-            <path d="M1 12h6m6 0h6"/>
-          </svg>
-          <span>远程控制</span>
-        </div>
-
-        <div class="nav-section-title">系统管理</div>
-        <div class="nav-item" data-page="user" id="nav-user" style="display:none;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
-          <span>用户管理</span>
-        </div>
-      </nav>
-
-      <div class="sidebar-footer">
-        <span class="status-dot"></span>系统运行正常
-        <br>v2.4.1 | API v1
-      </div>
-    </aside>
-
-    <!-- ==================== 主内容区 ==================== -->
-    <div class="main-wrapper">
-      <header class="topbar">
-        <div class="topbar-title" id="page-title">
-          设备总览<span>Device Overview</span>
-        </div>
-        <div class="topbar-right">
-          <div class="topbar-time" id="current-time"></div>
-          <div class="topbar-user">
-            <div class="avatar" id="topbar-avatar">A</div>
-            <span id="topbar-username">管理员</span>
-          </div>
-          <button class="logout-btn" onclick="handleLogout()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
-            </svg>
-            登出
-          </button>
-        </div>
-      </header>
-
-      <div class="content-area">
-        <!-- ==================== 页面1：设备总览 ==================== -->
-        <section id="page-overview" class="page active">
-          <div class="stat-grid">
-            <div class="stat-card blue">
-              <div class="stat-icon blue">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="2" y="3" width="20" height="14" rx="2"/>
-                  <line x1="8" y1="21" x2="16" y2="21"/>
-                  <line x1="12" y1="17" x2="12" y2="21"/>
-                </svg>
-              </div>
-              <div class="stat-info">
-                <div class="stat-label">设备总数</div>
-                <div class="stat-value">128</div>
-                <div class="stat-trend up">+12 本月新增</div>
-              </div>
-            </div>
-            <div class="stat-card green">
-              <div class="stat-icon green">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
-                  <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
-                  <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
-                  <line x1="12" y1="20" x2="12" y2="20"/>
-                </svg>
-              </div>
-              <div class="stat-info">
-                <div class="stat-label">在线设备</div>
-                <div class="stat-value">96</div>
-                <div class="stat-trend up">在线率 75.0%</div>
-              </div>
-            </div>
-            <div class="stat-card gray">
-              <div class="stat-icon gray">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-              </div>
-              <div class="stat-info">
-                <div class="stat-label">离线设备</div>
-                <div class="stat-value">28</div>
-                <div class="stat-trend down">-3 较昨日</div>
-              </div>
-            </div>
-            <div class="stat-card red">
-              <div class="stat-icon red">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                  <line x1="12" y1="9" x2="12" y2="13"/>
-                  <line x1="12" y1="17" x2="12" y2="17"/>
-                </svg>
-              </div>
-              <div class="stat-info">
-                <div class="stat-label">今日告警</div>
-                <div class="stat-value">15</div>
-                <div class="stat-trend down">4 严重 / 6 警告</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-header">
-              <div class="panel-title">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="8" y1="6" x2="21" y2="6"/>
-                  <line x1="8" y1="12" x2="21" y2="12"/>
-                  <line x1="8" y1="18" x2="21" y2="18"/>
-                  <line x1="3" y1="6" x2="3.01" y2="6"/>
-                  <line x1="3" y1="12" x2="3.01" y2="12"/>
-                  <line x1="3" y1="18" x2="3.01" y2="18"/>
-                </svg>
-                设备列表
-              </div>
-            </div>
-            <div class="toolbar">
-              <div class="search-box">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="11" cy="11" r="8"/>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-                <input type="text" id="device-search" placeholder="搜索设备ID或名称...">
-              </div>
-              <select class="filter-select" id="device-status-filter">
-                <option value="all">全部状态</option>
-                <option value="ONLINE">在线</option>
-                <option value="OFFLINE">离线</option>
-              </select>
-              <button class="btn btn-primary" onclick="openDeviceModal()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                添加设备
-              </button>
-            </div>
-            <div class="table-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>设备ID</th>
-                    <th>设备名称</th>
-                    <th>产品类型</th>
-                    <th>状态</th>
-                    <th>最后上线时间</th>
-                    <th style="text-align:right;">操作</th>
-                  </tr>
-                </thead>
-                <tbody id="device-table-body"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        <!-- ==================== 页面2：实时监控 ==================== -->
-        <section id="page-monitor" class="page">
-          <div class="monitor-layout">
-            <div class="panel monitor-device-list">
-              <div class="panel-header">
-                <div class="panel-title">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                  </svg>
-                  设备列表
+    <!-- Main -->
+    <div class="main">
+        <div class="topbar">
+            <div class="topbar-title" id="pageTitle">总览看板</div>
+            <div class="topbar-right">
+                <div class="ws-status">
+                    <span class="ws-dot" id="wsDot"></span>
+                    <span id="wsText">未连接</span>
                 </div>
-              </div>
-              <div class="panel-body" id="monitor-device-list-body"></div>
+                <input class="token-input" id="tokenInput" placeholder="输入 JWT Token..." />
+                <button class="btn btn-primary btn-sm" onclick="connectWs()">连接</button>
             </div>
-
-            <div class="monitor-content">
-              <div class="prop-grid">
-                <div class="prop-card">
-                  <div class="prop-header">
-                    <span class="prop-label">温度</span>
-                    <div class="prop-icon" style="background:rgba(245,158,11,0.12);color:var(--accent-orange);">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4 4 0 1 0 5 0z"/>
-                      </svg>
+        </div>
+        <div class="content">
+            <!-- Dashboard Page -->
+            <div class="page active" id="page-dashboard">
+                <div class="stats-grid">
+                    <div class="stat-card total">
+                        <div class="label">设备总数</div>
+                        <div class="value" id="statTotal">0</div>
+                        <div class="sub">所有注册设备</div>
                     </div>
-                  </div>
-                  <div class="prop-value" style="color:var(--accent-orange);">28.5<span class="prop-unit">℃</span></div>
-                </div>
-                <div class="prop-card">
-                  <div class="prop-header">
-                    <span class="prop-label">湿度</span>
-                    <div class="prop-icon" style="background:rgba(16,185,129,0.12);color:var(--accent-green);">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
-                      </svg>
+                    <div class="stat-card online">
+                        <div class="label">在线设备</div>
+                        <div class="value" id="statOnline">0</div>
+                        <div class="sub" id="statOnlineRate">在线率 0%</div>
                     </div>
-                  </div>
-                  <div class="prop-value" style="color:var(--accent-green);">65<span class="prop-unit">%</span></div>
-                </div>
-                <div class="prop-card">
-                  <div class="prop-header">
-                    <span class="prop-label">电压</span>
-                    <div class="prop-icon" style="background:rgba(167,139,250,0.12);color:var(--accent-purple);">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                      </svg>
+                    <div class="stat-card offline">
+                        <div class="label">离线设备</div>
+                        <div class="value" id="statOffline">0</div>
+                        <div class="sub">超过90秒无心跳</div>
                     </div>
-                  </div>
-                  <div class="prop-value" style="color:var(--accent-purple);">3.7<span class="prop-unit">V</span></div>
-                </div>
-                <div class="prop-card">
-                  <div class="prop-header">
-                    <span class="prop-label">信号强度</span>
-                    <div class="prop-icon" style="background:rgba(0,212,255,0.12);color:var(--accent-blue);">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
-                        <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
-                        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
-                      </svg>
+                    <div class="stat-card alarm">
+                        <div class="label">活跃告警</div>
+                        <div class="value" id="statAlarm">0</div>
+                        <div class="sub" id="statAlarmToday">今日 0 条</div>
                     </div>
-                  </div>
-                  <div class="prop-value" style="color:var(--accent-blue);">-67<span class="prop-unit">dBm</span></div>
                 </div>
-              </div>
-
-              <div class="chart-container">
-                <div class="chart-header">
-                  <div class="chart-title">
-                    <span class="indicator" style="background:var(--accent-blue);box-shadow:0 0 6px var(--accent-blue);"></span>
-                    24小时温度趋势
-                  </div>
-                  <span style="font-size:12px;color:var(--text-muted);">单位：℃</span>
+                <div class="grid-2">
+                    <div class="panel">
+                        <div class="panel-header"><span class="panel-title">实时设备数据趋势</span></div>
+                        <div class="panel-body">
+                            <div class="chart-container"><canvas id="realtimeChart"></canvas></div>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-header"><span class="panel-title">设备状态分布</span></div>
+                        <div class="panel-body">
+                            <div class="chart-container"><canvas id="statusChart"></canvas></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="chart-box" id="chart-temp"></div>
-              </div>
-
-              <div class="chart-container">
-                <div class="chart-header">
-                  <div class="chart-title">
-                    <span class="indicator" style="background:var(--accent-green);box-shadow:0 0 6px var(--accent-green);"></span>
-                    24小时湿度趋势
-                  </div>
-                  <span style="font-size:12px;color:var(--text-muted);">单位：%</span>
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">最近告警</span>
+                        <button class="btn btn-sm btn-primary" onclick="showPage('alarms', document.querySelectorAll('.nav-item')[2])">查看全部</button>
+                    </div>
+                    <div class="panel-body" id="recentAlarms">
+                        <div class="empty">暂无告警记录</div>
+                    </div>
                 </div>
-                <div class="chart-box" id="chart-humidity"></div>
-              </div>
+            </div>
 
-              <div class="device-info-grid">
-                <div class="info-item">
-                  <div class="info-label">固件版本</div>
-                  <div class="info-value">v1.2.0</div>
+            <!-- Devices Page -->
+            <div class="page" id="page-devices">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">设备列表</span>
+                        <button class="btn btn-sm btn-primary" onclick="loadDevices()">刷新</button>
+                    </div>
+                    <div class="panel-body" style="padding:0">
+                        <table>
+                            <thead>
+                                <tr><th>设备ID</th><th>设备名称</th><th>产品</th><th>状态</th><th>固件版本</th><th>最后上线</th><th>操作</th></tr>
+                            </thead>
+                            <tbody id="deviceTableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
-                <div class="info-item">
-                  <div class="info-label">IP 地址</div>
-                  <div class="info-value">192.168.1.100</div>
+            </div>
+
+            <!-- Alarms Page -->
+            <div class="page" id="page-alarms">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">告警列表</span>
+                        <button class="btn btn-sm btn-primary" onclick="loadAlarms()">刷新</button>
+                    </div>
+                    <div class="panel-body" id="alarmList">
+                        <div class="empty">暂无告警</div>
+                    </div>
                 </div>
-                <div class="info-item">
-                  <div class="info-label">连接时长</div>
-                  <div class="info-value">3天2小时</div>
+            </div>
+
+            <!-- OTA Page -->
+            <div class="page" id="page-ota">
+                <div class="tabs">
+                    <div class="tab active" onclick="switchTab('ota-firmware', this)">固件管理</div>
+                    <div class="tab" onclick="switchTab('ota-tasks', this)">升级任务</div>
                 </div>
-                <div class="info-item">
-                  <div class="info-label">最后心跳</div>
-                  <div class="info-value">2秒前</div>
+                <div id="ota-firmware">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <span class="panel-title">固件包列表</span>
+                            <button class="btn btn-sm btn-primary" onclick="loadFirmwares()">刷新</button>
+                        </div>
+                        <div class="panel-body" style="padding:0">
+                            <table>
+                                <thead><tr><th>版本</th><th>产品</th><th>大小</th><th>状态</th><th>创建时间</th></tr></thead>
+                                <tbody id="firmwareTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ==================== 页面3：物模型管理 ==================== -->
-        <section id="page-model" class="page">
-          <div class="product-grid" id="product-grid"></div>
-
-          <div class="panel">
-            <div class="panel-header">
-              <div class="panel-title">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                </svg>
-                物模型属性
-                <span id="current-product-name" style="font-weight:400;font-size:13px;color:var(--text-secondary);margin-left:8px;"></span>
-              </div>
-              <button class="btn btn-primary btn-sm" onclick="openThingModelModal()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                编辑物模型
-              </button>
-            </div>
-            <div class="table-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>属性标识</th>
-                    <th>属性名称</th>
-                    <th>数据类型</th>
-                    <th>单位</th>
-                    <th>最小值</th>
-                    <th>最大值</th>
-                    <th>告警等级</th>
-                  </tr>
-                </thead>
-                <tbody id="model-table-body"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        <!-- ==================== 页面4：告警监控 ==================== -->
-        <section id="page-alarm" class="page">
-          <div class="stat-grid">
-            <div class="stat-card red">
-              <div class="stat-icon red">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                  <line x1="12" y1="9" x2="12" y2="13"/>
-                  <line x1="12" y1="17" x2="12" y2="17"/>
-                </svg>
-              </div>
-              <div class="stat-info">
-                <div class="stat-label">今日告警总数</div>
-                <div class="stat-value">15</div>
-              </div>
-            </div>
-            <div class="stat-card red">
-              <div class="stat-icon red">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="15" y1="9" x2="9" y2="15"/>
-                  <line x1="9" y1="9" x2="15" y2="15"/>
-                </svg>
-              </div>
-              <div class="stat-info">
-                <div class="stat-label">严重告警</div>
-                <div class="stat-value">4</div>
-              </div>
-            </div>
-            <div class="stat-card gray" style="--border-color:var(--border-color);">
-              <div class="stat-icon" style="background:rgba(245,158,11,0.12);color:var(--accent-orange);">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                  <line x1="12" y1="9" x2="12" y2="13"/>
-                  <line x1="12" y1="17" x2="12" y2="17"/>
-                </svg>
-              </div>
-              <div class="stat-info">
-                <div class="stat-label">警告告警</div>
-                <div class="stat-value">6</div>
-              </div>
-            </div>
-            <div class="stat-card blue">
-              <div class="stat-icon blue">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="12" y1="16" x2="12" y2="12"/>
-                  <line x1="12" y1="8" x2="12.01" y2="8"/>
-                </svg>
-              </div>
-              <div class="stat-info">
-                <div class="stat-label">信息告警</div>
-                <div class="stat-value">5</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-header">
-              <div class="panel-title">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-                告警列表
-              </div>
-            </div>
-            <div class="table-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>级别</th>
-                    <th>设备名称</th>
-                    <th>告警内容</th>
-                    <th>触发时间</th>
-                    <th>状态</th>
-                  </tr>
-                </thead>
-                <tbody id="alarm-table-body"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        <!-- ==================== 页面5：远程控制 ==================== -->
-        <section id="page-control" class="page">
-          <div class="panel" style="margin-bottom:16px;">
-            <div class="panel-header">
-              <div class="panel-title">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="3"/>
-                  <path d="M12 1v6m0 6v6"/>
-                </svg>
-                设备选择
-              </div>
-            </div>
-            <div style="padding:16px 20px;">
-              <select class="select-control" id="control-device-select" style="max-width:400px;"></select>
-            </div>
-          </div>
-
-          <div class="control-layout">
-            <div class="panel control-panel">
-              <div class="panel-header">
-                <div class="panel-title">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                  </svg>
-                  控制面板
+                <div id="ota-tasks" style="display:none">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <span class="panel-title">升级任务</span>
+                            <button class="btn btn-sm btn-primary" onclick="loadOtaTasks()">刷新</button>
+                        </div>
+                        <div class="panel-body" style="padding:0">
+                            <table>
+                                <thead><tr><th>任务名称</th><th>目标</th><th>状态</th><th>进度</th><th>成功/失败</th><th>操作</th></tr></thead>
+                                <tbody id="otaTaskTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-              </div>
-              <div class="control-body" id="control-panel-body"></div>
             </div>
 
-            <div class="panel command-log">
-              <div class="panel-header">
-                <div class="panel-title">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
-                  指令下发记录
+            <!-- Rules Page -->
+            <div class="page" id="page-rules">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">告警规则管理</span>
+                        <div>
+                            <button class="btn btn-sm btn-success" onclick="reloadRules()">重载规则</button>
+                            <button class="btn btn-sm btn-primary" onclick="showRuleEditor()">新增规则</button>
+                        </div>
+                    </div>
+                    <div class="panel-body" style="padding:0">
+                        <table>
+                            <thead><tr><th>规则名称</th><th>类型</th><th>状态</th><th>描述</th><th>操作</th></tr></thead>
+                            <tbody id="ruleTableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
-              </div>
-              <div class="table-container">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>指令内容</th>
-                      <th>下发时间</th>
-                      <th>响应状态</th>
-                      <th>响应消息</th>
-                    </tr>
-                  </thead>
-                  <tbody id="command-log-body"></tbody>
-                </table>
-              </div>
+                <div class="panel" id="ruleEditorPanel" style="display:none">
+                    <div class="panel-header"><span class="panel-title" id="ruleEditorTitle">新增规则</span></div>
+                    <div class="panel-body">
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label class="form-label">规则名称</label>
+                                <input class="form-input" id="ruleName" placeholder="如：温度超阈值告警" />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">规则类型</label>
+                                <select class="form-input" id="ruleType">
+                                    <option value="THRESHOLD">阈值告警</option>
+                                    <option value="COMPOSITE">复合告警</option>
+                                    <option value="TIME_WINDOW">时间窗口</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">DRL 规则内容</label>
+                            <textarea class="rule-editor" id="ruleDrl" placeholder="package com.iot.platform.rules;&#10;rule 'Temperature Critical'&#10;when&#10;    DevicePropertyFact(properties['temperature'] > 40)&#10;then&#10;    fact.addResult(new AlarmResult(...));&#10;end"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">描述</label>
+                            <input class="form-input" id="ruleDesc" placeholder="规则描述" />
+                        </div>
+                        <button class="btn btn-primary" onclick="saveRule()">保存规则</button>
+                    </div>
+                </div>
             </div>
-          </div>
-        </section>
-
-        <!-- ==================== 页面6：用户管理 ==================== -->
-        <section id="page-user" class="page">
-          <div class="panel">
-            <div class="panel-header">
-              <div class="panel-title">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-                用户列表
-              </div>
-              <button class="btn btn-primary btn-sm" onclick="openUserModal()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                添加用户
-              </button>
-            </div>
-            <div class="table-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>用户名</th>
-                    <th>角色</th>
-                    <th>状态</th>
-                    <th>创建时间</th>
-                    <th style="text-align:right;">操作</th>
-                  </tr>
-                </thead>
-                <tbody id="user-table-body"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      </div>
+        </div>
     </div>
-  </div>
+</div>
 
-  <div id="toast-container"></div>
+<script>
+const API_BASE = '/iot';
+let token = '';
+let ws = null;
+let realtimeChart = null;
+let statusChart = null;
+let realtimeData = { labels: [], datasets: {} };
 
-  <script>
-    // ==================== API 配置 ====================
-    const API_BASE = '/iot';
-    const TOKEN_KEY = 'iot_token';
-    const USER_KEY = 'iot_user';
+// Page navigation
+function showPage(name, el) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('pageTitle').textContent = el.textContent.trim();
+    if (name === 'dashboard') loadDashboard();
+    if (name === 'devices') loadDevices();
+    if (name === 'alarms') loadAlarms();
+    if (name === 'ota') { loadFirmwares(); loadOtaTasks(); }
+    if (name === 'rules') loadRules();
+}
 
-    // 当前登录用户信息
-    let currentUser = null;
+function switchTab(tabId, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('ota-firmware').style.display = tabId === 'ota-firmware' ? '' : 'none';
+    document.getElementById('ota-tasks').style.display = tabId === 'ota-tasks' ? '' : 'none';
+}
 
-    /**
-     * 获取存储的 Token
-     */
-    function getToken() {
-      return localStorage.getItem(TOKEN_KEY);
+// API helper
+async function api(method, path, body) {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(API_BASE + path, opts);
+    if (!res.ok) throw new Error(`API ${path} failed: ${res.status}`);
+    return res.json();
+}
+
+// WebSocket
+function connectWs() {
+    token = document.getElementById('tokenInput').value.trim();
+    if (!token) { alert('请输入 JWT Token'); return; }
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    ws = new WebSocket(`${proto}://${location.host}${API_BASE}/ws/device`);
+    ws.onopen = () => {
+        document.getElementById('wsDot').classList.add('connected');
+        document.getElementById('wsText').textContent = '已连接';
+        loadDashboard();
+    };
+    ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        handleWsMessage(msg);
+    };
+    ws.onclose = () => {
+        document.getElementById('wsDot').classList.remove('connected');
+        document.getElementById('wsText').textContent = '已断开';
+    };
+    ws.onerror = () => { document.getElementById('wsText').textContent = '连接错误'; };
+}
+
+function handleWsMessage(msg) {
+    if (msg.type === 'property') {
+        updateRealtimeChart(msg.deviceId, msg.data?.properties || {});
+    } else if (msg.type === 'alarm') {
+        loadDashboard();
+    } else if (msg.type === 'status') {
+        loadDashboard();
     }
+}
 
-    /**
-     * 存储 Token 和用户信息
-     */
-    function setAuth(token, user) {
-      localStorage.setItem(TOKEN_KEY, token);
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
-      currentUser = user;
-    }
+// Dashboard
+async function loadDashboard() {
+    try {
+        const [devices, alarms] = await Promise.all([
+            api('GET', '/device/list?page=1&size=1000'),
+            api('GET', '/alarm/recent?limit=10')
+        ]);
+        const deviceList = devices.data?.records || devices.data || [];
+        const alarmList = alarms.data || [];
+        const total = deviceList.length;
+        const online = deviceList.filter(d => d.status === 'ONLINE').length;
+        const offline = total - online;
+        const activeAlarms = alarmList.filter(a => a.status === 'ACTIVE').length;
 
-    /**
-     * 清除认证信息
-     */
-    function clearAuth() {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-      currentUser = null;
-    }
+        document.getElementById('statTotal').textContent = total;
+        document.getElementById('statOnline').textContent = online;
+        document.getElementById('statOffline').textContent = offline;
+        document.getElementById('statAlarm').textContent = activeAlarms;
+        document.getElementById('statOnlineRate').textContent = `在线率 ${total > 0 ? Math.round(online/total*100) : 0}%`;
 
-    /**
-     * 获取存储的用户信息
-     */
-    function getStoredUser() {
-      const stored = localStorage.getItem(USER_KEY);
-      if (stored) {
-        try { return JSON.parse(stored); } catch(e) { return null; }
-      }
-      return null;
-    }
+        renderRecentAlarms(alarmList.slice(0, 5));
+        renderStatusChart(online, offline);
+        initRealtimeChart();
+    } catch (e) { console.error('Dashboard load error:', e); }
+}
 
-    /**
-     * 统一 API 请求封装
-     */
-    async function apiRequest(url, options = {}) {
-      const token = getToken();
-      const headers = {
-        'Content-Type': 'application/json',
-        ...(options.headers || {})
-      };
-      if (token) {
-        headers['Authorization'] = 'Bearer ' + token;
-      }
-      try {
-        const response = await fetch(API_BASE + url, {
-          ...options,
-          headers
-        });
-        const data = await response.json();
-        if (data.code !== 200000) {
-          // Token 过期或未认证
-          if (data.code === 401001 || data.code === 401002) {
-            clearAuth();
-            showLoginOverlay();
-          }
-          throw new Error(data.message || '请求失败');
+function renderRecentAlarms(alarms) {
+    const container = document.getElementById('recentAlarms');
+    if (!alarms || alarms.length === 0) { container.innerHTML = '<div class="empty">暂无告警记录</div>'; return; }
+    container.innerHTML = alarms.map(a => {
+        const levelClass = a.alarmLevel?.toLowerCase() || 'info';
+        const icon = levelClass === 'critical' ? '\u26A0' : levelClass === 'warning' ? '\u26A0' : '\u2139';
+        return `<div class="alarm-item">
+            <div class="alarm-icon ${levelClass}">${icon}</div>
+            <div class="alarm-content">
+                <div class="alarm-title">${a.alarmTitle || '告警'}</div>
+                <div class="alarm-meta">设备: ${a.deviceId} | ${a.alarmTime || ''}</div>
+            </div>
+            <span class="badge badge-${levelClass}">${a.alarmLevel || 'INFO'}</span>
+        </div>`;
+    }).join('');
+}
+
+function initRealtimeChart() {
+    if (realtimeChart) return;
+    const ctx = document.getElementById('realtimeChart').getContext('2d');
+    realtimeChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: [], datasets: [] },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#8b8fa3', font: { size: 11 } } } },
+            scales: {
+                x: { ticks: { color: '#8b8fa3', font: { size: 10 } }, grid: { color: '#2a2d3a' } },
+                y: { ticks: { color: '#8b8fa3', font: { size: 10 } }, grid: { color: '#2a2d3a' } }
+            }
         }
-        return data.data;
-      } catch (error) {
-        if (error.message) {
-          showToast(error.message, 'error');
+    });
+}
+
+function updateRealtimeChart(deviceId, properties) {
+    if (!realtimeChart) initRealtimeChart();
+    const now = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    realtimeChart.data.labels.push(now);
+    if (realtimeChart.data.labels.length > 20) realtimeChart.data.labels.shift();
+
+    Object.entries(properties).forEach(([key, val]) => {
+        if (typeof val !== 'number') return;
+        let ds = realtimeChart.data.datasets.find(d => d.label === key);
+        if (!ds) {
+            const colors = ['#4f8cf0', '#22c55e', '#f59e0b', '#06b6d4', '#ef4444'];
+            ds = { label: key, data: [], borderColor: colors[realtimeChart.data.datasets.length % colors.length], borderWidth: 2, tension: 0.3, pointRadius: 1 };
+            realtimeChart.data.datasets.push(ds);
         }
-        throw error;
-      }
-    }
+        ds.data.push(val);
+        if (ds.data.length > 20) ds.data.shift();
+    });
+    realtimeChart.update('none');
+}
 
-    /**
-     * 显示登录遮罩
-     */
-    function showLoginOverlay() {
-      document.getElementById('login-overlay').classList.remove('hidden');
-    }
+function renderStatusChart(online, offline) {
+    if (statusChart) statusChart.destroy();
+    const ctx = document.getElementById('statusChart').getContext('2d');
+    statusChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['在线', '离线'],
+            datasets: [{ data: [online, offline], backgroundColor: ['#22c55e', '#3a3d4a'], borderWidth: 0 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#8b8fa3' } } } }
+    });
+}
 
-    /**
-     * 隐藏登录遮罩
-     */
-    function hideLoginOverlay() {
-      document.getElementById('login-overlay').classList.add('hidden');
-    }
+// Devices
+async function loadDevices() {
+    try {
+        const res = await api('GET', '/device/list?page=1&size=100');
+        const list = res.data?.records || res.data || [];
+        const tbody = document.getElementById('deviceTableBody');
+        if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-dim)">暂无设备</td></tr>'; return; }
+        tbody.innerHTML = list.map(d => `<tr>
+            <td>${d.deviceId}</td>
+            <td>${d.deviceName || '-'}</td>
+            <td>${d.productKey || '-'}</td>
+            <td><span class="badge ${d.status === 'ONLINE' ? 'badge-online' : 'badge-offline'}">${d.status}</span></td>
+            <td>${d.firmwareVersion || '-'}</td>
+            <td>${d.lastOnlineTime || '-'}</td>
+            <td><button class="btn btn-sm btn-primary" onclick="controlDevice('${d.deviceId}')">控制</button></td>
+        </tr>`).join('');
+    } catch (e) { console.error(e); }
+}
 
-    /**
-     * 处理登录
-     */
-    async function handleLogin() {
-      const username = document.getElementById('login-username').value.trim();
-      const password = document.getElementById('login-password').value;
-      const errorEl = document.getElementById('login-error');
+function controlDevice(deviceId) {
+    const cmd = prompt(`控制设备 ${deviceId}，输入命令 (如 switch):`);
+    if (!cmd) return;
+    const params = prompt('输入参数 JSON (如 {"state":true}):');
+    try {
+        api('POST', '/device/control', { deviceId, command: cmd, params: params ? JSON.parse(params) : {} })
+            .then(r => alert('指令已发送: ' + JSON.stringify(r.data)))
+            .catch(e => alert('发送失败: ' + e.message));
+    } catch (e) { alert('参数格式错误'); }
+}
 
-      if (!username || !password) {
-        errorEl.textContent = '请输入用户名和密码';
-        errorEl.classList.add('show');
-        return;
-      }
+// Alarms
+async function loadAlarms() {
+    try {
+        const res = await api('GET', '/alarm/recent?limit=50');
+        const list = res.data || [];
+        const container = document.getElementById('alarmList');
+        if (list.length === 0) { container.innerHTML = '<div class="empty">暂无告警</div>'; return; }
+        container.innerHTML = list.map(a => {
+            const lc = (a.alarmLevel || 'INFO').toLowerCase();
+            const icon = lc === 'critical' ? '\u26A0' : lc === 'warning' ? '\u26A0' : '\u2139';
+            return `<div class="alarm-item">
+                <div class="alarm-icon ${lc}">${icon}</div>
+                <div class="alarm-content">
+                    <div class="alarm-title">${a.alarmTitle || '告警'}</div>
+                    <div class="alarm-meta">设备: ${a.deviceId} | 属性: ${a.propertyIdentifier || '-'} | 值: ${a.alarmValue ?? '-'} | ${a.alarmTime || ''}</div>
+                </div>
+                <span class="badge badge-${lc}">${a.alarmLevel || 'INFO'}</span>
+            </div>`;
+        }).join('');
+    } catch (e) { console.error(e); }
+}
 
-      errorEl.classList.remove('show');
-      const btn = document.getElementById('login-btn');
-      const originalText = btn.innerHTML;
-      btn.innerHTML = '登录中...';
-      btn.disabled = true;
+// OTA
+async function loadFirmwares() {
+    try {
+        const res = await api('GET', '/ota/firmware/list');
+        const list = res.data || [];
+        const tbody = document.getElementById('firmwareTableBody');
+        if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-dim)">暂无固件</td></tr>'; return; }
+        tbody.innerHTML = list.map(f => `<tr>
+            <td>v${f.version}</td>
+            <td>${f.productId || '通用'}</td>
+            <td>${(f.fileSize / 1024 / 1024).toFixed(2)} MB</td>
+            <td><span class="badge badge-${f.status === 'PUBLISHED' ? 'online' : 'offline'}">${f.status}</span></td>
+            <td>${f.createTime || '-'}</td>
+        </tr>`).join('');
+    } catch (e) { console.error(e); }
+}
 
-      try {
-        const data = await apiRequest('/auth/login', {
-          method: 'POST',
-          body: JSON.stringify({ username, password })
-        });
-        const user = { username: data.username, role: data.role };
-        setAuth(data.token, user);
-        hideLoginOverlay();
-        await afterLogin();
-        showToast('登录成功，欢迎回来！', 'success');
-      } catch (error) {
-        errorEl.textContent = error.message || '登录失败';
-        errorEl.classList.add('show');
-      } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-      }
-    }
+async function loadOtaTasks() {
+    try {
+        const res = await api('GET', '/ota/task/list');
+        const list = res.data || [];
+        const tbody = document.getElementById('otaTaskTableBody');
+        if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-dim)">暂无升级任务</td></tr>'; return; }
+        tbody.innerHTML = list.map(t => {
+            const progress = t.totalCount > 0 ? Math.round((t.successCount + t.failCount) / t.totalCount * 100) : 0;
+            return `<tr>
+                <td>${t.taskName}</td>
+                <td>${t.targetType || 'ALL'}</td>
+                <td><span class="badge badge-${t.status === 'COMPLETED' ? 'online' : t.status === 'RUNNING' ? 'info' : 'offline'}">${t.status}</span></td>
+                <td>
+                    <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+                    <div class="progress-text">${progress}% (${t.successCount + t.failCount}/${t.totalCount})</div>
+                </td>
+                <td><span style="color:var(--success)">${t.successCount}</span> / <span style="color:var(--danger)">${t.failCount}</span></td>
+                <td>${t.status === 'RUNNING' ? `<button class="btn btn-sm btn-danger" onclick="cancelOtaTask(${t.id})">取消</button>` : '-'}</td>
+            </tr>`;
+        }).join('');
+    } catch (e) { console.error(e); }
+}
 
-    /**
-     * 登出
-     */
-    function handleLogout() {
-      clearAuth();
-      showLoginOverlay();
-      document.getElementById('login-username').value = '';
-      document.getElementById('login-password').value = '';
-      showToast('已安全登出', 'info');
-    }
+async function cancelOtaTask(taskId) {
+    try { await api('POST', `/ota/task/${taskId}/cancel`); loadOtaTasks(); } catch (e) { alert('取消失败: ' + e.message); }
+}
 
-    /**
-     * 登录成功后初始化
-     */
-    async function afterLogin() {
-      currentUser = getStoredUser();
-      if (!currentUser) return;
-
-      // 更新顶部栏用户信息
-      updateTopbarUser();
-
-      // 根据角色显示/隐藏用户管理菜单
-      const showUserMgmt = currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'SYSTEM_ADMIN';
-      document.getElementById('nav-user').style.display = showUserMgmt ? 'flex' : 'none';
-
-      // 加载产品列表（用于添加设备时选择）
-      await loadProductsForDevice();
-
-      // 初始化各页面数据
-      renderDeviceTable();
-      renderMonitorDeviceList();
-      renderProducts();
-      renderModelTable();
-      renderAlarmTable();
-      renderControlDeviceSelect();
-      renderControlPanel(mockDevices[0].id);
-      renderCommandLog();
-
-      // 加载用户列表（如果有权访问）
-      if (showUserMgmt) {
-        loadUsers();
-      }
-    }
-
-    /**
-     * 更新顶部栏用户信息
-     */
-    function updateTopbarUser() {
-      if (!currentUser) return;
-      document.getElementById('topbar-username').textContent = currentUser.username;
-      document.getElementById('topbar-avatar').textContent = currentUser.username.charAt(0).toUpperCase();
-    }
-
-    // ==================== 用户管理 ====================
-
-    /**
-     * 加载用户列表
-     */
-    async function loadUsers() {
-      try {
-        const users = await apiRequest('/user/list');
-        renderUserTable(users || []);
-      } catch (error) {
-        // 权限不足或加载失败，忽略
-      }
-    }
-
-    /**
-     * 渲染用户列表表格
-     */
-    function renderUserTable(users) {
-      const tbody = document.getElementById('user-table-body');
-      if (!users || users.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">暂无用户数据</td></tr>`;
-        return;
-      }
-
-      const roleClassMap = { 'SUPER_ADMIN': 'super-admin', 'SYSTEM_ADMIN': 'system-admin', 'USER': 'user' };
-      const roleTextMap = { 'SUPER_ADMIN': '超级管理员', 'SYSTEM_ADMIN': '系统管理员', 'USER': '普通用户' };
-
-      tbody.innerHTML = users.map(u => {
-        const roleClass = roleClassMap[u.role] || 'user';
-        const roleText = roleTextMap[u.role] || u.role;
-        const statusClass = u.status === 1 ? 'enabled' : 'disabled';
-        const statusText = u.status === 1 ? '启用' : '禁用';
-        const statusBtnText = u.status === 1 ? '禁用' : '启用';
-        const statusBtnIcon = u.status === 1
-          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>'
-          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>';
-        const createTime = u.createTime ? formatTime(u.createTime) : '-';
-        return `
-          <tr>
-            <td class="cell-id">${u.id}</td>
-            <td>${u.username}</td>
-            <td><span class="role-tag ${roleClass}">${roleText}</span></td>
-            <td><span class="user-status-tag ${statusClass}" style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;"><span class="dot" style="width:6px;height:6px;border-radius:50%;background:${u.status === 1 ? 'var(--accent-green)' : 'var(--accent-red)'};"></span>${statusText}</span></td>
-            <td class="cell-time">${createTime}</td>
-            <td style="text-align:right;">
-              <button class="btn btn-ghost btn-sm" onclick="toggleUserStatus(${u.id}, ${u.status === 1 ? 0 : 1})">${statusBtnIcon}${statusBtnText}</button>
-              <button class="btn btn-ghost btn-sm" style="color:var(--accent-red);border-color:rgba(239,68,68,0.3);" onclick="deleteUser(${u.id}, '${u.username}')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                删除
-              </button>
+// Rules
+async function loadRules() {
+    try {
+        const res = await api('GET', '/rule/list');
+        const list = res.data || [];
+        const tbody = document.getElementById('ruleTableBody');
+        if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-dim)">暂无规则</td></tr>'; return; }
+        tbody.innerHTML = list.map(r => `<tr>
+            <td>${r.ruleName}</td>
+            <td>${r.ruleType}</td>
+            <td><span class="badge badge-${r.enabled ? 'online' : 'offline'}">${r.enabled ? '启用' : '禁用'}</span></td>
+            <td>${r.description || '-'}</td>
+            <td>
+                <button class="btn btn-sm ${r.enabled ? 'btn-danger' : 'btn-success'}" onclick="toggleRule(${r.id}, ${!r.enabled})">${r.enabled ? '禁用' : '启用'}</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteRule(${r.id})">删除</button>
             </td>
-          </tr>
-        `;
-      }).join('');
-    }
+        </tr>`).join('');
+    } catch (e) { console.error(e); }
+}
 
-    /**
-     * 打开添加用户模态框
-     */
-    function openUserModal() {
-      document.getElementById('user-form-username').value = '';
-      document.getElementById('user-form-password').value = '';
-      // 根据当前用户角色限制可选角色
-      const roleSelect = document.getElementById('user-form-role');
-      if (currentUser.role === 'SUPER_ADMIN') {
-        roleSelect.innerHTML = '<option value="SYSTEM_ADMIN">系统管理员</option>';
-      } else if (currentUser.role === 'SYSTEM_ADMIN') {
-        roleSelect.innerHTML = '<option value="USER">普通用户</option>';
-      } else {
-        roleSelect.innerHTML = '<option value="">无权创建用户</option>';
-      }
-      openModal('modal-user');
-    }
+async function toggleRule(id, enable) {
+    try {
+        await api('POST', `/rule/${id}/${enable ? 'enable' : 'disable'}`);
+        loadRules();
+    } catch (e) { alert('操作失败: ' + e.message); }
+}
 
-    /**
-     * 提交添加用户表单
-     */
-    async function submitUserForm() {
-      const username = document.getElementById('user-form-username').value.trim();
-      const password = document.getElementById('user-form-password').value;
-      const role = document.getElementById('user-form-role').value;
+async function deleteRule(id) {
+    if (!confirm('确认删除该规则?')) return;
+    try { await api('DELETE', `/rule/${id}`); loadRules(); } catch (e) { alert('删除失败: ' + e.message); }
+}
 
-      if (!username || !password || !role) {
-        showToast('请填写所有必填项', 'warning');
-        return;
-      }
+async function reloadRules() {
+    try { await api('POST', '/rule/reload'); alert('规则已重新加载'); } catch (e) { alert('重载失败: ' + e.message); }
+}
 
-      try {
-        await apiRequest('/user', {
-          method: 'POST',
-          body: JSON.stringify({ username, password, role })
-        });
-        closeModal('modal-user');
-        showToast('用户创建成功', 'success');
-        loadUsers();
-      } catch (error) {
-        // 错误提示已在 apiRequest 中处理
-      }
-    }
+function showRuleEditor() {
+    document.getElementById('ruleEditorPanel').style.display = '';
+    document.getElementById('ruleEditorTitle').textContent = '新增规则';
+    document.getElementById('ruleName').value = '';
+    document.getElementById('ruleType').value = 'THRESHOLD';
+    document.getElementById('ruleDrl').value = '';
+    document.getElementById('ruleDesc').value = '';
+}
 
-    /**
-     * 切换用户启用/禁用状态
-     */
-    async function toggleUserStatus(id, status) {
-      try {
-        await apiRequest(`/user/${id}/status?status=${status}`, { method: 'PUT' });
-        showToast(`用户已${status === 1 ? '启用' : '禁用'}`, 'success');
-        loadUsers();
-      } catch (error) {
-        // 错误提示已在 apiRequest 中处理
-      }
-    }
-
-    /**
-     * 删除用户
-     */
-    async function deleteUser(id, username) {
-      if (!confirm(`确定要删除用户 "${username}" 吗？`)) return;
-      try {
-        await apiRequest(`/user/${id}`, { method: 'DELETE' });
-        showToast('用户已删除', 'success');
-        loadUsers();
-      } catch (error) {
-        // 错误提示已在 apiRequest 中处理
-      }
-    }
-
-    // ==================== 设备管理 ====================
-
-    /**
-     * 加载产品列表用于添加设备时选择
-     */
-    let productsCache = [];
-    async function loadProductsForDevice() {
-      try {
-        const products = await apiRequest('/product/list');
-        productsCache = products || [];
-        const select = document.getElementById('device-form-product');
-        if (select) {
-          select.innerHTML = productsCache.map(p =>
-            `<option value="${p.productKey}">${p.productName} (${p.productKey})</option>`
-          ).join('');
-        }
-      } catch (error) {
-        // API 不可用时使用 Mock 数据
-        productsCache = mockProducts.map(p => ({
-          productKey: p.id,
-          productName: p.name
-        }));
-        const select = document.getElementById('device-form-product');
-        if (select) {
-          select.innerHTML = productsCache.map(p =>
-            `<option value="${p.productKey}">${p.productName}</option>`
-          ).join('');
-        }
-      }
-    }
-
-    /**
-     * 打开添加设备模态框
-     */
-    function openDeviceModal() {
-      document.getElementById('device-form-id').value = '';
-      document.getElementById('device-form-name').value = '';
-      document.getElementById('device-form-location').value = '';
-      document.getElementById('device-form-remark').value = '';
-      openModal('modal-device');
-    }
-
-    /**
-     * 提交添加设备表单
-     */
-    async function submitDeviceForm() {
-      const deviceId = document.getElementById('device-form-id').value.trim();
-      const deviceName = document.getElementById('device-form-name').value.trim();
-      const productKey = document.getElementById('device-form-product').value;
-      const location = document.getElementById('device-form-location').value.trim();
-      const remark = document.getElementById('device-form-remark').value.trim();
-
-      if (!deviceId || !productKey) {
-        showToast('请填写设备ID和关联产品', 'warning');
-        return;
-      }
-
-      try {
-        await apiRequest('/device/register', {
-          method: 'POST',
-          body: JSON.stringify({ deviceId, deviceName, productKey, location, remark })
-        });
-        closeModal('modal-device');
-        showToast('设备注册成功', 'success');
-        renderDeviceTable();
-      } catch (error) {
-        // 错误提示已在 apiRequest 中处理
-      }
-    }
-
-    // ==================== 物模型管理 ====================
-
-    let currentThingModelProductId = null;
-    let thingModelRows = [];
-
-    /**
-     * 打开物模型管理模态框
-     */
-    async function openThingModelModal() {
-      const product = mockProducts.find(p => p.id === currentProductId);
-      if (!product) {
-        showToast('请先选择产品', 'warning');
-        return;
-      }
-
-      // 使用 Mock 产品 ID（实际应使用产品列表的 ID）
-      currentThingModelProductId = product.id === 'p1' ? 1 : (product.id === 'p2' ? 2 : null);
-      document.getElementById('thing-model-product-name').textContent = product.name;
-
-      // 加载已有物模型
-      thingModelRows = product.properties.map(prop => ({
-        identifier: prop.id,
-        name: prop.name,
-        dataType: prop.type,
-        unit: prop.unit === '-' ? '' : prop.unit,
-        minValue: prop.min === '-' ? '' : prop.min,
-        maxValue: prop.max === '-' ? '' : prop.max
-      }));
-
-      renderThingModelRows();
-      openModal('modal-thing-model');
-    }
-
-    /**
-     * 渲染物模型编辑行
-     */
-    function renderThingModelRows() {
-      const container = document.getElementById('thing-model-rows');
-      container.innerHTML = thingModelRows.map((row, index) => `
-        <div class="thing-model-row">
-          <input type="text" class="form-input" placeholder="标识" value="${row.identifier || ''}" oninput="updateThingModelRow(${index}, 'identifier', this.value)">
-          <input type="text" class="form-input" placeholder="名称" value="${row.name || ''}" oninput="updateThingModelRow(${index}, 'name', this.value)">
-          <select class="form-select" onchange="updateThingModelRow(${index}, 'dataType', this.value)">
-            <option value="int" ${row.dataType === 'int' ? 'selected' : ''}>int</option>
-            <option value="float" ${row.dataType === 'float' ? 'selected' : ''}>float</option>
-            <option value="string" ${row.dataType === 'string' ? 'selected' : ''}>string</option>
-            <option value="bool" ${row.dataType === 'bool' ? 'selected' : ''}>bool</option>
-            <option value="enum" ${row.dataType === 'enum' ? 'selected' : ''}>enum</option>
-          </select>
-          <input type="text" class="form-input" placeholder="单位" value="${row.unit || ''}" oninput="updateThingModelRow(${index}, 'unit', this.value)">
-          <input type="text" class="form-input" placeholder="最小值" value="${row.minValue || ''}" oninput="updateThingModelRow(${index}, 'minValue', this.value)">
-          <input type="text" class="form-input" placeholder="最大值" value="${row.maxValue || ''}" oninput="updateThingModelRow(${index}, 'maxValue', this.value)">
-          <button class="btn-remove" onclick="removeThingModelRow(${index})">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-          </button>
-        </div>
-      `).join('');
-    }
-
-    /**
-     * 更新物模型行数据
-     */
-    function updateThingModelRow(index, field, value) {
-      if (thingModelRows[index]) {
-        thingModelRows[index][field] = value;
-      }
-    }
-
-    /**
-     * 添加物模型行
-     */
-    function addThingModelRow() {
-      thingModelRows.push({ identifier: '', name: '', dataType: 'float', unit: '', minValue: '', maxValue: '' });
-      renderThingModelRows();
-    }
-
-    /**
-     * 删除物模型行
-     */
-    function removeThingModelRow(index) {
-      thingModelRows.splice(index, 1);
-      renderThingModelRows();
-    }
-
-    /**
-     * 提交物模型
-     */
-    async function submitThingModelForm() {
-      if (!currentThingModelProductId) {
-        showToast('无法确定产品ID', 'warning');
-        return;
-      }
-      const validRows = thingModelRows.filter(r => r.identifier && r.name);
-      if (validRows.length === 0) {
-        showToast('请至少添加一个有效属性', 'warning');
-        return;
-      }
-
-      const payload = validRows.map(r => ({
-        identifier: r.identifier,
-        name: r.name,
-        type: 'property',
-        dataType: r.dataType,
-        unit: r.unit || null,
-        minValue: r.minValue ? parseFloat(r.minValue) : null,
-        maxValue: r.maxValue ? parseFloat(r.maxValue) : null
-      }));
-
-      try {
-        await apiRequest(`/product/${currentThingModelProductId}/thing-model`, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-        closeModal('modal-thing-model');
-        showToast('物模型保存成功', 'success');
-        renderModelTable();
-      } catch (error) {
-        // 错误提示已在 apiRequest 中处理
-      }
-    }
-
-    // ==================== 模态框通用 ====================
-
-    function openModal(id) {
-      document.getElementById(id).classList.add('show');
-    }
-
-    function closeModal(id) {
-      document.getElementById(id).classList.remove('show');
-    }
-
-    // 点击遮罩关闭模态框
-    document.querySelectorAll('.modal-overlay').forEach(overlay => {
-      overlay.addEventListener('click', function(e) {
-        if (e.target === this) {
-          this.classList.remove('show');
-        }
-      });
-    });
-
-    // 登录回车键提交
-    document.getElementById('login-password').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') handleLogin();
-    });
-    document.getElementById('login-username').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') document.getElementById('login-password').focus();
-    });
-
-    // ==================== Mock 数据 ====================
-    const mockDevices = [
-      { id: 'DEV-001', name: '温湿度传感器-A01', type: '温湿度传感器', status: 'online', lastOnline: '2024-01-15 14:32:00' },
-      { id: 'DEV-002', name: '温湿度传感器-A02', type: '温湿度传感器', status: 'online', lastOnline: '2024-01-15 14:30:00' },
-      { id: 'DEV-003', name: '智能开关-B01', type: '智能开关', status: 'online', lastOnline: '2024-01-15 14:28:00' },
-      { id: 'DEV-004', name: '智能开关-B02', type: '智能开关', status: 'offline', lastOnline: '2024-01-14 18:15:00' },
-      { id: 'DEV-005', name: '空气质量监测仪-C01', type: '空气质量监测仪', status: 'online', lastOnline: '2024-01-15 14:25:00' },
-      { id: 'DEV-006', name: '空气质量监测仪-C02', type: '空气质量监测仪', status: 'online', lastOnline: '2024-01-15 14:20:00' },
-      { id: 'DEV-007', name: '温湿度传感器-A03', type: '温湿度传感器', status: 'offline', lastOnline: '2024-01-13 09:00:00' },
-      { id: 'DEV-008', name: '智能开关-B03', type: '智能开关', status: 'online', lastOnline: '2024-01-15 14:10:00' },
-      { id: 'DEV-009', name: '温湿度传感器-A04', type: '温湿度传感器', status: 'online', lastOnline: '2024-01-15 14:05:00' },
-      { id: 'DEV-010', name: '空气质量监测仪-C03', type: '空气质量监测仪', status: 'offline', lastOnline: '2024-01-12 16:30:00' },
-    ];
-
-    const mockAlarms = [
-      { level: 'critical', device: '温湿度传感器-A03', content: '温度超出阈值（当前 45.2℃，阈值 40.0℃）', time: '2024-01-15 14:20:00', status: 'pending' },
-      { level: 'warning', device: '智能开关-B02', content: '设备离线超过 6 小时', time: '2024-01-15 08:15:00', status: 'pending' },
-      { level: 'info', device: '温湿度传感器-A01', content: '电池电量低于 30%（当前 28%）', time: '2024-01-15 10:00:00', status: 'resolved' },
-      { level: 'critical', device: '空气质量监测仪-C02', content: 'PM2.5 浓度超标（当前 180μg/m³，阈值 150μg/m³）', time: '2024-01-15 12:30:00', status: 'pending' },
-      { level: 'warning', device: '温湿度传感器-A04', content: '湿度异常波动（5分钟内变化 15%）', time: '2024-01-15 11:45:00', status: 'resolved' },
-      { level: 'info', device: '智能开关-B01', content: '定时任务执行成功（关闭指令）', time: '2024-01-15 09:30:00', status: 'resolved' },
-      { level: 'warning', device: '温湿度传感器-A02', content: '信号强度较弱（当前 -85dBm）', time: '2024-01-15 13:00:00', status: 'pending' },
-      { level: 'critical', device: '智能开关-B03', content: '过流保护触发（电流 16.2A，阈值 15A）', time: '2024-01-15 14:10:00', status: 'pending' },
-      { level: 'info', device: '空气质量监测仪-C01', content: 'CO2 浓度偏高（当前 1200ppm）', time: '2024-01-15 07:00:00', status: 'resolved' },
-      { level: 'warning', device: '温湿度传感器-A01', content: '固件版本 v1.2.0 可升级至 v1.3.0', time: '2024-01-15 06:00:00', status: 'resolved' },
-    ];
-
-    const mockProducts = [
-      {
-        id: 'p1',
-        name: '温湿度传感器',
-        desc: 'TH-Sensor-v2',
-        deviceCount: 56,
-        propCount: 7,
-        iconColor: 'var(--accent-blue)',
-        iconBg: 'rgba(0,212,255,0.12)',
-        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4 4 0 1 0 5 0z"/></svg>',
-        properties: [
-          { id: 'temperature', name: '温度', type: 'float', unit: '℃', min: '-20', max: '80', alarm: 'warning' },
-          { id: 'humidity', name: '湿度', type: 'float', unit: '%RH', min: '0', max: '100', alarm: 'info' },
-          { id: 'voltage', name: '电压', type: 'float', unit: 'V', min: '0', max: '5', alarm: 'warning' },
-          { id: 'signal', name: '信号强度', type: 'int', unit: 'dBm', min: '-120', max: '0', alarm: 'info' },
-          { id: 'battery', name: '电池电量', type: 'int', unit: '%', min: '0', max: '100', alarm: 'warning' },
-          { id: 'online_status', name: '在线状态', type: 'bool', unit: '-', min: '-', max: '-', alarm: 'info' },
-          { id: 'firmware_version', name: '固件版本', type: 'string', unit: '-', min: '-', max: '-', alarm: 'info' },
-        ]
-      },
-      {
-        id: 'p2',
-        name: '智能开关',
-        desc: 'SmartSwitch-Pro',
-        deviceCount: 42,
-        propCount: 5,
-        iconColor: 'var(--accent-green)',
-        iconBg: 'rgba(16,185,129,0.12)',
-        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>',
-        properties: [
-          { id: 'switch_state', name: '开关状态', type: 'bool', unit: '-', min: '-', max: '-', alarm: 'critical' },
-          { id: 'current', name: '电流', type: 'float', unit: 'A', min: '0', max: '20', alarm: 'critical' },
-          { id: 'power', name: '功率', type: 'float', unit: 'W', min: '0', max: '4400', alarm: 'warning' },
-          { id: 'voltage', name: '电压', type: 'float', unit: 'V', min: '0', max: '300', alarm: 'warning' },
-          { id: 'timer_count', name: '定时任务数', type: 'int', unit: '个', min: '0', max: '16', alarm: 'info' },
-        ]
-      },
-      {
-        id: 'p3',
-        name: '空气质量监测仪',
-        desc: 'AirMonitor-X1',
-        deviceCount: 30,
-        propCount: 8,
-        iconColor: 'var(--accent-purple)',
-        iconBg: 'rgba(167,139,250,0.12)',
-        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg>',
-        properties: [
-          { id: 'pm25', name: 'PM2.5', type: 'float', unit: 'μg/m³', min: '0', max: '500', alarm: 'critical' },
-          { id: 'pm10', name: 'PM10', type: 'float', unit: 'μg/m³', min: '0', max: '600', alarm: 'warning' },
-          { id: 'co2', name: 'CO2浓度', type: 'int', unit: 'ppm', min: '0', max: '5000', alarm: 'warning' },
-          { id: 'formaldehyde', name: '甲醛', type: 'float', unit: 'mg/m³', min: '0', max: '2', alarm: 'critical' },
-          { id: 'tvoc', name: 'TVOC', type: 'float', unit: 'mg/m³', min: '0', max: '5', alarm: 'warning' },
-          { id: 'temperature', name: '温度', type: 'float', unit: '℃', min: '-20', max: '80', alarm: 'info' },
-          { id: 'humidity', name: '湿度', type: 'float', unit: '%RH', min: '0', max: '100', alarm: 'info' },
-          { id: 'aqi', name: '空气质量指数', type: 'int', unit: '-', min: '0', max: '500', alarm: 'warning' },
-        ]
-      },
-    ];
-
-    const mockCommandLog = [
-      { command: '设置开关状态：开启', time: '2024-01-15 14:28:12', status: 'success', message: '设备已执行，耗时 230ms' },
-      { command: '设置上报频率：30秒', time: '2024-01-15 14:15:03', status: 'success', message: '配置已生效' },
-      { command: '获取设备状态', time: '2024-01-15 13:50:45', status: 'success', message: '返回状态数据包' },
-      { command: '重启设备', time: '2024-01-15 12:30:00', status: 'pending', message: '等待设备响应...' },
-      { command: '设置开关状态：关闭', time: '2024-01-15 09:30:00', status: 'success', message: '设备已执行，耗时 180ms' },
-      { command: '固件升级检查', time: '2024-01-15 08:00:00', status: 'timeout', message: '设备未在 5 秒内响应' },
-    ];
-
-    // ==================== 页面切换 ====================
-    const pageTitleMap = {
-      overview: { title: '设备总览', sub: 'Device Overview' },
-      monitor: { title: '实时监控', sub: 'Real-time Monitor' },
-      model: { title: '物模型管理', sub: 'Thing Model' },
-      alarm: { title: '告警监控', sub: 'Alarm Monitor' },
-      control: { title: '远程控制', sub: 'Remote Control' },
-      user: { title: '用户管理', sub: 'User Management' },
+async function saveRule() {
+    const body = {
+        ruleName: document.getElementById('ruleName').value,
+        ruleType: document.getElementById('ruleType').value,
+        drlContent: document.getElementById('ruleDrl').value,
+        description: document.getElementById('ruleDesc').value,
+        enabled: 1
     };
+    if (!body.ruleName || !body.drlContent) { alert('请填写规则名称和 DRL 内容'); return; }
+    try {
+        await api('POST', '/rule', body);
+        alert('规则已保存');
+        loadRules();
+        document.getElementById('ruleEditorPanel').style.display = 'none';
+    } catch (e) { alert('保存失败: ' + e.message); }
+}
 
-    let monitorChartsInitialized = false;
-    let tempChart = null;
-    let humidityChart = null;
-
-    function switchPage(pageId) {
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      document.getElementById('page-' + pageId).classList.add('active');
-
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      document.querySelector(`.nav-item[data-page="${pageId}"]`).classList.add('active');
-
-      const titleInfo = pageTitleMap[pageId];
-      document.getElementById('page-title').innerHTML = `${titleInfo.title}<span>${titleInfo.sub}</span>`;
-
-      if (pageId === 'monitor' && !monitorChartsInitialized) {
-        setTimeout(() => {
-          initTempChart();
-          initHumidityChart();
-          monitorChartsInitialized = true;
-        }, 150);
-      }
-
-      if (pageId === 'monitor' && monitorChartsInitialized) {
-        setTimeout(() => {
-          if (tempChart) tempChart.resize();
-          if (humidityChart) humidityChart.resize();
-        }, 100);
-      }
-
-      if (pageId === 'user') {
-        loadUsers();
-      }
+// Auto-init
+window.addEventListener('load', () => {
+    initRealtimeChart();
+    // Auto-connect if token saved
+    const savedToken = localStorage.getItem('iot_token');
+    if (savedToken) {
+        document.getElementById('tokenInput').value = savedToken;
     }
+});
 
-    // ==================== 设备总览 ====================
-    function renderDeviceTable() {
-      const search = document.getElementById('device-search').value.toLowerCase();
-      const filter = document.getElementById('device-status-filter').value;
-      const tbody = document.getElementById('device-table-body');
-
-      const filtered = mockDevices.filter(d => {
-        const matchSearch = d.id.toLowerCase().includes(search) || d.name.toLowerCase().includes(search);
-        const matchFilter = filter === 'all' || d.status.toUpperCase() === filter.toUpperCase();
-        return matchSearch && matchFilter;
-      });
-
-      if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">未找到匹配的设备</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = filtered.map(d => `
-        <tr>
-          <td class="cell-id">${d.id}</td>
-          <td>${d.name}</td>
-          <td>${d.type}</td>
-          <td>
-            <span class="status-tag ${d.status}">
-              <span class="dot"></span>
-              ${d.status === 'online' ? '在线' : '离线'}
-            </span>
-          </td>
-          <td class="cell-time">${d.lastOnline}</td>
-          <td style="text-align:right;">
-            <button class="btn btn-ghost btn-sm" onclick="showToast('查看设备详情：${d.name}', 'info')">详情</button>
-            <button class="btn btn-primary btn-sm" onclick="switchPage('monitor')">控制</button>
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    // ==================== 实时监控 ====================
-    function renderMonitorDeviceList() {
-      const body = document.getElementById('monitor-device-list-body');
-      body.innerHTML = mockDevices.map((d, i) => `
-        <div class="device-list-item ${i === 0 ? 'active' : ''}" data-device="${d.id}" onclick="selectMonitorDevice('${d.id}')">
-          <div class="device-info">
-            <div class="device-name">${d.name}</div>
-            <div class="device-id">${d.id}</div>
-          </div>
-          <span class="status-tag ${d.status}"><span class="dot"></span></span>
-        </div>
-      `).join('');
-    }
-
-    function selectMonitorDevice(deviceId) {
-      document.querySelectorAll('#monitor-device-list-body .device-list-item').forEach(item => {
-        item.classList.toggle('active', item.dataset.device === deviceId);
-      });
-      const device = mockDevices.find(d => d.id === deviceId);
-      if (device) {
-        showToast(`已切换到设备：${device.name}`, 'info');
-      }
-    }
-
-    function generateHourLabels() {
-      const labels = [];
-      for (let i = 23; i >= 0; i--) {
-        labels.push(String(i).padStart(2, '0') + ':00');
-      }
-      return labels;
-    }
-
-    function generateTempData() {
-      const data = [];
-      for (let i = 0; i < 24; i++) {
-        const base = 26 + Math.sin(i / 24 * Math.PI * 2) * 3;
-        data.push((base + (Math.random() - 0.5) * 1.5).toFixed(1));
-      }
-      return data;
-    }
-
-    function generateHumidityData() {
-      const data = [];
-      for (let i = 0; i < 24; i++) {
-        const base = 62 + Math.cos(i / 24 * Math.PI * 2) * 8;
-        data.push(Math.round(base + (Math.random() - 0.5) * 4));
-      }
-      return data;
-    }
-
-    function initTempChart() {
-      const dom = document.getElementById('chart-temp');
-      if (!dom) return;
-      tempChart = echarts.init(dom, null, { renderer: 'canvas' });
-      const hours = generateHourLabels();
-      const tempData = generateTempData();
-
-      tempChart.setOption({
-        backgroundColor: 'transparent',
-        tooltip: {
-          trigger: 'axis',
-          backgroundColor: '#161c2c',
-          borderColor: '#2a3142',
-          textStyle: { color: '#e2e8f0', fontSize: 12 },
-          formatter: function(params) {
-            return `${params[0].axisValue}<br/>温度：<b style="color:#00d4ff;">${params[0].data}℃</b>`;
-          }
-        },
-        grid: { top: 20, right: 20, bottom: 30, left: 45 },
-        xAxis: {
-          type: 'category',
-          boundaryGap: false,
-          data: hours,
-          axisLine: { lineStyle: { color: '#2a3142' } },
-          axisLabel: { color: '#64748b', fontSize: 11, interval: 3 },
-        },
-        yAxis: {
-          type: 'value',
-          name: '',
-          min: 20,
-          max: 35,
-          axisLine: { show: false },
-          axisTick: { show: false },
-          splitLine: { lineStyle: { color: '#1e2535', type: 'dashed' } },
-          axisLabel: { color: '#64748b', fontSize: 11 },
-        },
-        series: [{
-          name: '温度',
-          type: 'line',
-          smooth: true,
-          symbol: 'circle',
-          symbolSize: 5,
-          showSymbol: false,
-          data: tempData,
-          lineStyle: { color: '#00d4ff', width: 2, shadowColor: 'rgba(0,212,255,0.4)', shadowBlur: 10 },
-          itemStyle: { color: '#00d4ff', borderColor: '#0a0e1a', borderWidth: 2 },
-          emphasis: { showSymbol: true },
-          areaStyle: {
-            color: {
-              type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-              colorStops: [
-                { offset: 0, color: 'rgba(0,212,255,0.35)' },
-                { offset: 0.5, color: 'rgba(0,212,255,0.12)' },
-                { offset: 1, color: 'rgba(0,212,255,0)' }
-              ]
-            }
-          },
-        }]
-      });
-    }
-
-    function initHumidityChart() {
-      const dom = document.getElementById('chart-humidity');
-      if (!dom) return;
-      humidityChart = echarts.init(dom, null, { renderer: 'canvas' });
-      const hours = generateHourLabels();
-      const humidityData = generateHumidityData();
-
-      humidityChart.setOption({
-        backgroundColor: 'transparent',
-        tooltip: {
-          trigger: 'axis',
-          backgroundColor: '#161c2c',
-          borderColor: '#2a3142',
-          textStyle: { color: '#e2e8f0', fontSize: 12 },
-          formatter: function(params) {
-            return `${params[0].axisValue}<br/>湿度：<b style="color:#10b981;">${params[0].data}%</b>`;
-          }
-        },
-        grid: { top: 20, right: 20, bottom: 30, left: 45 },
-        xAxis: {
-          type: 'category',
-          boundaryGap: false,
-          data: hours,
-          axisLine: { lineStyle: { color: '#2a3142' } },
-          axisLabel: { color: '#64748b', fontSize: 11, interval: 3 },
-        },
-        yAxis: {
-          type: 'value',
-          min: 40,
-          max: 90,
-          axisLine: { show: false },
-          axisTick: { show: false },
-          splitLine: { lineStyle: { color: '#1e2535', type: 'dashed' } },
-          axisLabel: { color: '#64748b', fontSize: 11 },
-        },
-        series: [{
-          name: '湿度',
-          type: 'line',
-          smooth: true,
-          symbol: 'circle',
-          symbolSize: 5,
-          showSymbol: false,
-          data: humidityData,
-          lineStyle: { color: '#10b981', width: 2, shadowColor: 'rgba(16,185,129,0.4)', shadowBlur: 10 },
-          itemStyle: { color: '#10b981', borderColor: '#0a0e1a', borderWidth: 2 },
-          emphasis: { showSymbol: true },
-          areaStyle: {
-            color: {
-              type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-              colorStops: [
-                { offset: 0, color: 'rgba(16,185,129,0.35)' },
-                { offset: 0.5, color: 'rgba(16,185,129,0.12)' },
-                { offset: 1, color: 'rgba(16,185,129,0)' }
-              ]
-            }
-          },
-        }]
-      });
-    }
-
-    // ==================== 物模型管理 ====================
-    let currentProductId = 'p1';
-
-    function renderProducts() {
-      const grid = document.getElementById('product-grid');
-      grid.innerHTML = mockProducts.map(p => `
-        <div class="product-card ${p.id === currentProductId ? 'active' : ''}" onclick="selectProduct('${p.id}')">
-          <div class="product-top">
-            <div class="product-icon" style="background:${p.iconBg};color:${p.iconColor};">
-              ${p.icon}
-            </div>
-            <div>
-              <div class="product-name">${p.name}</div>
-              <div class="product-desc">${p.desc}</div>
-            </div>
-          </div>
-          <div class="product-stats">
-            <div class="product-stat">
-              <div class="num">${p.deviceCount}</div>
-              <div class="label">设备数</div>
-            </div>
-            <div class="product-stat">
-              <div class="num">${p.propCount}</div>
-              <div class="label">属性数</div>
-            </div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function selectProduct(productId) {
-      currentProductId = productId;
-      renderProducts();
-      renderModelTable();
-    }
-
-    function renderModelTable() {
-      const product = mockProducts.find(p => p.id === currentProductId);
-      if (!product) return;
-      document.getElementById('current-product-name').textContent = '— ' + product.name;
-
-      const tbody = document.getElementById('model-table-body');
-      const alarmText = { critical: 'CRITICAL', warning: 'WARNING', info: 'INFO' };
-      tbody.innerHTML = product.properties.map(prop => `
-        <tr>
-          <td class="cell-id">${prop.id}</td>
-          <td>${prop.name}</td>
-          <td>${prop.type}</td>
-          <td>${prop.unit}</td>
-          <td>${prop.min}</td>
-          <td>${prop.max}</td>
-          <td>
-            <span class="alarm-tag ${prop.alarm}">
-              <span class="dot"></span>
-              ${alarmText[prop.alarm]}
-            </span>
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    // ==================== 告警监控 ====================
-    function renderAlarmTable() {
-      const tbody = document.getElementById('alarm-table-body');
-      const levelText = { critical: 'CRITICAL', warning: 'WARNING', info: 'INFO' };
-      const statusText = { pending: '未处理', resolved: '已处理' };
-      tbody.innerHTML = mockAlarms.map(a => `
-        <tr>
-          <td>
-            <span class="alarm-tag ${a.level}">
-              <span class="dot"></span>
-              ${levelText[a.level]}
-            </span>
-          </td>
-          <td>${a.device}</td>
-          <td style="max-width:360px;">${a.content}</td>
-          <td class="cell-time">${a.time}</td>
-          <td>
-            <span class="status-tag ${a.status === 'pending' ? 'offline' : 'online'}">
-              <span class="dot"></span>
-              ${statusText[a.status]}
-            </span>
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    // ==================== 远程控制 ====================
-    let controlSwitchOn = false;
-    let reportInterval = 30;
-
-    function renderControlDeviceSelect() {
-      const select = document.getElementById('control-device-select');
-      select.innerHTML = mockDevices.map(d =>
-        `<option value="${d.id}">${d.name}（${d.id}）</option>`
-      ).join('');
-      select.onchange = function() {
-        renderControlPanel(this.value);
-      };
-    }
-
-    function renderControlPanel(deviceId) {
-      const device = mockDevices.find(d => d.id === deviceId);
-      if (!device) return;
-      const body = document.getElementById('control-panel-body');
-
-      if (device.type === '智能开关') {
-        body.innerHTML = `
-          <div class="control-group">
-            <div class="control-label">开关状态</div>
-            <div class="switch-control">
-              <div class="switch ${controlSwitchOn ? 'on' : ''}" id="ctrl-switch" onclick="toggleSwitch()"></div>
-              <span class="switch-status ${controlSwitchOn ? 'on' : ''}" id="switch-status">
-                ${controlSwitchOn ? '已开启' : '已关闭'}
-              </span>
-            </div>
-          </div>
-          <div class="control-group">
-            <div class="control-label">定时关闭<span style="color:var(--text-muted);">（分钟）</span></div>
-            <div class="slider-control">
-              <input type="range" class="slider" min="5" max="180" value="30" oninput="document.getElementById('timer-value').textContent = this.value + ' 分钟'">
-              <span class="slider-value" id="timer-value">30 分钟</span>
-            </div>
-          </div>
-          <div class="control-group">
-            <button class="btn btn-primary" onclick="sendCommand('设置定时关闭：30分钟后')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              下发指令
-            </button>
-          </div>
-        `;
-      } else if (device.type === '温湿度传感器') {
-        body.innerHTML = `
-          <div class="control-group">
-            <div class="control-label">数据上报频率</div>
-            <div class="slider-control">
-              <input type="range" class="slider" min="5" max="120" value="${reportInterval}" oninput="reportInterval=this.value; document.getElementById('interval-value').textContent = this.value + ' 秒'">
-              <span class="slider-value" id="interval-value">${reportInterval} 秒</span>
-            </div>
-          </div>
-          <div class="control-group">
-            <div class="control-label">数据采样精度</div>
-            <select class="select-control" style="max-width:200px;">
-              <option value="high">高精度（0.1）</option>
-              <option value="medium" selected>中精度（0.5）</option>
-              <option value="low">低精度（1.0）</option>
-            </select>
-          </div>
-          <div class="control-group">
-            <button class="btn btn-primary" onclick="sendCommand('设置上报频率：${reportInterval}秒')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              下发指令
-            </button>
-            <button class="btn btn-ghost" style="margin-left:8px;" onclick="sendCommand('获取设备实时状态')">获取状态</button>
-          </div>
-        `;
-      } else {
-        body.innerHTML = `
-          <div class="control-group">
-            <div class="control-label">数据上报模式</div>
-            <select class="select-control" style="max-width:200px;">
-              <option value="realtime">实时上报</option>
-              <option value="interval" selected>定时上报</option>
-              <option value="threshold">阈值触发</option>
-            </select>
-          </div>
-          <div class="control-group">
-            <div class="control-label">校准命令</div>
-            <select class="select-control" style="max-width:200px;">
-              <option value="none">请选择...</option>
-              <option value="pm25">PM2.5 传感器校准</option>
-              <option value="co2">CO2 传感器校准</option>
-              <option value="formaldehyde">甲醛传感器校准</option>
-            </select>
-          </div>
-          <div class="control-group">
-            <button class="btn btn-primary" onclick="sendCommand('执行传感器校准')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              下发指令
-            </button>
-            <button class="btn btn-ghost" style="margin-left:8px;" onclick="sendCommand('重启设备')">重启设备</button>
-          </div>
-        `;
-      }
-    }
-
-    function toggleSwitch() {
-      controlSwitchOn = !controlSwitchOn;
-      const sw = document.getElementById('ctrl-switch');
-      const status = document.getElementById('switch-status');
-      sw.classList.toggle('on', controlSwitchOn);
-      status.classList.toggle('on', controlSwitchOn);
-      status.textContent = controlSwitchOn ? '已开启' : '已关闭';
-      showToast(`开关已${controlSwitchOn ? '开启' : '关闭'}`, controlSwitchOn ? 'success' : 'info');
-      addCommandLog(`设置开关状态：${controlSwitchOn ? '开启' : '关闭'}`, 'success', `设备已${controlSwitchOn ? '开启' : '关闭'}，耗时 200ms`);
-    }
-
-    function sendCommand(cmd) {
-      showToast(`指令已下发：${cmd}`, 'info');
-      const statuses = [
-        { status: 'success', message: '设备已执行，耗时 ' + (150 + Math.floor(Math.random() * 200)) + 'ms' },
-        { status: 'pending', message: '等待设备响应...' },
-        { status: 'timeout', message: '设备未在 5 秒内响应' },
-      ];
-      const random = statuses[Math.floor(Math.random() * statuses.length)];
-      addCommandLog(cmd, random.status, random.message);
-    }
-
-    function addCommandLog(command, status, message) {
-      mockCommandLog.unshift({ command, time: formatNow(), status, message });
-      renderCommandLog();
-    }
-
-    function renderCommandLog() {
-      const tbody = document.getElementById('command-log-body');
-      const statusText = { success: '成功', timeout: '超时', pending: '执行中' };
-      tbody.innerHTML = mockCommandLog.map(log => `
-        <tr>
-          <td style="max-width:200px;">${log.command}</td>
-          <td class="cell-time">${log.time}</td>
-          <td>
-            <span class="response-tag ${log.status}">
-              ${statusText[log.status]}
-            </span>
-          </td>
-          <td style="color:var(--text-secondary);font-size:12px;">${log.message}</td>
-        </tr>
-      `).join('');
-    }
-
-    // ==================== Toast ==================== function
-    const toastIcons = {
-      success: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
-      info: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
-      warning: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/></svg>',
-      error: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
-    };
-
-    function showToast(message, type = 'info') {
-      const container = document.getElementById('toast-container');
-      const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      toast.innerHTML = `${toastIcons[type]}<span>${message}</span>`;
-      container.appendChild(toast);
-
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(100px)';
-        toast.style.transition = 'all 0.3s ease';
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
-    }
-
-    // ==================== 工具函数 ====================
-    function formatTime(timeStr) {
-      if (!timeStr) return '-';
-      // 处理 ISO 时间字符串或带 T 的时间格式
-      if (typeof timeStr === 'string') {
-        return timeStr.replace('T', ' ').substring(0, 19);
-      }
-      return String(timeStr);
-    }
-
-    function formatNow() {
-      const d = new Date();
-      const pad = n => String(n).padStart(2, '0');
-      return `2024-01-15 ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-    }
-
-    function updateClock() {
-      const now = new Date();
-      const pad = n => String(n).padStart(2, '0');
-      const days = ['日', '一', '二', '三', '四', '五', '六'];
-      document.getElementById('current-time').textContent =
-        `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} 星期${days[now.getDay()]} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-    }
-
-    // ==================== 事件绑定 ====================
-    document.querySelectorAll('.nav-item').forEach(item => {
-      item.addEventListener('click', () => switchPage(item.dataset.page));
-    });
-
-    document.getElementById('device-search').addEventListener('input', renderDeviceTable);
-    document.getElementById('device-status-filter').addEventListener('change', renderDeviceTable);
-
-    // ==================== 初始化 ====================
-    function init() {
-      updateClock();
-      setInterval(updateClock, 1000);
-
-      window.addEventListener('resize', () => {
-        if (tempChart) tempChart.resize();
-        if (humidityChart) humidityChart.resize();
-      });
-
-      // 检查登录状态
-      const token = getToken();
-      const storedUser = getStoredUser();
-      if (token && storedUser) {
-        currentUser = storedUser;
-        hideLoginOverlay();
-        afterLogin();
-      } else {
-        showLoginOverlay();
-      }
-    }
-
-    init();
-  </script>
+// Save token on connect
+const origConnect = connectWs;
+connectWs = function() {
+    origConnect();
+    localStorage.setItem('iot_token', document.getElementById('tokenInput').value);
+};
+</script>
 </body>
 </html>

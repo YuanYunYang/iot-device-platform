@@ -14,6 +14,7 @@ import com.iot.platform.model.vo.LoginVO;
 import com.iot.platform.model.vo.UserVO;
 import com.iot.platform.repository.UserMapper;
 import com.iot.platform.service.UserService;
+import com.iot.platform.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,31 +39,37 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public LoginVO login(LoginDTO dto) {
-        // 根据用户名查询用户
-        User user = getByUsername(dto.getUsername());
-        if (user == null) {
-            throw new GlobalExceptionHandler.BusinessException(ResultCode.USERNAME_OR_PASSWORD_ERROR);
+        // 登录时无租户上下文，需忽略租户隔离查询用户
+        TenantContext.setIgnore(true);
+        try {
+            // 根据用户名查询用户
+            User user = getByUsername(dto.getUsername());
+            if (user == null) {
+                throw new GlobalExceptionHandler.BusinessException(ResultCode.USERNAME_OR_PASSWORD_ERROR);
+            }
+
+            // 校验账号状态
+            if (user.getStatus() != null && user.getStatus() == 0) {
+                throw new GlobalExceptionHandler.BusinessException(ResultCode.USER_DISABLED);
+            }
+
+            // BCrypt 校验密码
+            if (!BCrypt.checkpw(dto.getPassword(), user.getPassword())) {
+                throw new GlobalExceptionHandler.BusinessException(ResultCode.USERNAME_OR_PASSWORD_ERROR);
+            }
+
+            // 生成 JWT Token（携带租户ID）
+            String token = jwtUtils.generateToken(user.getUsername(), user.getRole(), user.getTenantId());
+
+            LoginVO vo = new LoginVO();
+            vo.setToken(token);
+            vo.setUsername(user.getUsername());
+            vo.setRole(user.getRole());
+            log.info("用户登录成功: username={}, role={}, tenantId={}", user.getUsername(), user.getRole(), user.getTenantId());
+            return vo;
+        } finally {
+            TenantContext.clear();
         }
-
-        // 校验账号状态
-        if (user.getStatus() != null && user.getStatus() == 0) {
-            throw new GlobalExceptionHandler.BusinessException(ResultCode.USER_DISABLED);
-        }
-
-        // BCrypt 校验密码
-        if (!BCrypt.checkpw(dto.getPassword(), user.getPassword())) {
-            throw new GlobalExceptionHandler.BusinessException(ResultCode.USERNAME_OR_PASSWORD_ERROR);
-        }
-
-        // 生成 JWT Token
-        String token = jwtUtils.generateToken(user.getUsername(), user.getRole());
-
-        LoginVO vo = new LoginVO();
-        vo.setToken(token);
-        vo.setUsername(user.getUsername());
-        vo.setRole(user.getRole());
-        log.info("用户登录成功: username={}, role={}", user.getUsername(), user.getRole());
-        return vo;
     }
 
     @Override

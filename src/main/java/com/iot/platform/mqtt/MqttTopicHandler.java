@@ -1,7 +1,12 @@
 package com.iot.platform.mqtt;
 
+import com.iot.platform.service.OtaService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 /**
  * MQTT 主题路由处理器
@@ -17,6 +22,8 @@ import org.springframework.stereotype.Component;
  * iot/device/{deviceId}/heartbeat         心跳
  * iot/device/{deviceId}/command           平台下发控制指令（下行）
  * iot/device/{deviceId}/command/resp      设备控制指令响应（上行）
+ * iot/device/{deviceId}/ota/command       平台下发 OTA 升级指令（下行）
+ * iot/device/{deviceId}/ota/progress      设备上报 OTA 升级进度（上行）
  * </pre>
  *
  * @author iot-platform
@@ -27,6 +34,16 @@ public class MqttTopicHandler {
 
     /** Topic 前缀 */
     private static final String TOPIC_PREFIX = "iot/device/";
+
+    /**
+     * OTA 服务（懒加载，打破与 MQTT 客户端之间的构造期循环依赖）。
+     * <p>
+     * OTA 进度上报由本处理器的 {@link #handleOtaProgress} 分支处理，
+     * 而 OTA 服务又依赖 MqttClientManager 下发指令，形成环路，故使用 {@code @Lazy}。
+     */
+    @Autowired
+    @Lazy
+    private OtaService otaService;
 
     /**
      * 解析 Topic，提取设备ID
@@ -85,5 +102,41 @@ public class MqttTopicHandler {
      */
     public String buildCommandRespTopic(String deviceId) {
         return TOPIC_PREFIX + deviceId + "/command/resp";
+    }
+
+    /**
+     * 构建 OTA 升级指令下行 Topic
+     *
+     * @param deviceId 设备ID
+     * @return iot/device/{deviceId}/ota/command
+     */
+    public String buildOtaCommandTopic(String deviceId) {
+        return TOPIC_PREFIX + deviceId + "/ota/command";
+    }
+
+    /**
+     * 构建 OTA 进度上报上行 Topic
+     *
+     * @param deviceId 设备ID
+     * @return iot/device/{deviceId}/ota/progress
+     */
+    public String buildOtaProgressTopic(String deviceId) {
+        return TOPIC_PREFIX + deviceId + "/ota/progress";
+    }
+
+    /**
+     * 处理设备上报的 OTA 升级进度（消息处理分支）
+     * <p>
+     * 当解析到消息类型为 {@code ota/progress} 时调用，委托 OTA 服务更新进度与任务统计。
+     *
+     * @param deviceId 设备ID
+     * @param payload  上报负载（taskId、status、errorMsg 等）
+     */
+    public void handleOtaProgress(String deviceId, Map<String, Object> payload) {
+        try {
+            otaService.handleDeviceProgress(deviceId, payload);
+        } catch (Exception e) {
+            log.error("处理 OTA 进度上报异常: deviceId={}, error={}", deviceId, e.getMessage(), e);
+        }
     }
 }

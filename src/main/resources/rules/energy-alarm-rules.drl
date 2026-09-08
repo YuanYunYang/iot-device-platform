@@ -1,0 +1,112 @@
+package com.iot.platform.rules;
+
+import com.iot.platform.model.dto.DevicePropertyFact;
+import com.iot.platform.model.dto.AlarmResult;
+
+/**
+ * 能源告警规则集
+ * <p>
+ * 面向能源管理场景的专用告警规则，覆盖功率越限、峰段超额、
+ * 非工作时段异常用电、功率因数过低以及能耗突增等典型异常。
+ * 规则评估的事实对象为 DevicePropertyFact，规则触发后构造
+ * AlarmResult 并通过 fact.addResult(...) 回收，由
+ * RuleEngineService 统一落库为告警记录。
+ *
+ * @author iot-platform
+ */
+
+// ==================== 规则1：功率越限严重告警（CRITICAL） ====================
+rule "Power Over Limit Critical"
+    salience 100
+    no-loop true
+    when
+        $fact : DevicePropertyFact($p : getDouble("activePower"), $p != null, $p > 1000.0)
+    then
+        AlarmResult result = new AlarmResult();
+        result.setDeviceId($fact.getDeviceId());
+        result.setLevel("CRITICAL");
+        result.setType("THRESHOLD");
+        result.setTitle("功率越限严重告警");
+        result.setContent("设备 " + $fact.getDeviceId() + " 有功功率 " + $p + " kW 超过临界阈值 1000 kW");
+        result.setPropertyIdentifier("activePower");
+        result.setAlarmValue($p);
+        $fact.addResult(result);
+end
+
+// ==================== 规则2：峰段超额用电告警（WARNING） ====================
+rule "Peak Period Excess Warning"
+    salience 80
+    no-loop true
+    when
+        $fact : DevicePropertyFact(
+            $p : getDouble("activePower"), $p != null, $p > 800.0,
+            $flag : getDouble("peakFlag"), $flag != null, $flag == 1.0
+        )
+    then
+        AlarmResult result = new AlarmResult();
+        result.setDeviceId($fact.getDeviceId());
+        result.setLevel("WARNING");
+        result.setType("THRESHOLD");
+        result.setTitle("峰段超额用电告警");
+        result.setContent("设备 " + $fact.getDeviceId() + " 峰段有功功率 " + $p + " kW 超过限值 800 kW");
+        result.setPropertyIdentifier("activePower");
+        result.setAlarmValue($p);
+        $fact.addResult(result);
+end
+
+// ==================== 规则3：非工作时段异常用电告警（WARNING） ====================
+rule "Off-Hours Anomaly Warning"
+    salience 60
+    no-loop true
+    when
+        $fact : DevicePropertyFact(
+            $p : getDouble("activePower"), $p != null, $p > 100.0,
+            $hour : getDouble("hour"), $hour != null, $hour > 22.0
+        )
+    then
+        AlarmResult result = new AlarmResult();
+        result.setDeviceId($fact.getDeviceId());
+        result.setLevel("WARNING");
+        result.setType("TIME_WINDOW");
+        result.setTitle("非工作时段异常用电");
+        result.setContent("设备 " + $fact.getDeviceId() + " 非工作时段（" + $hour + " 时）功率 " + $p + " kW 异常");
+        result.setPropertyIdentifier("activePower");
+        result.setAlarmValue($p);
+        $fact.addResult(result);
+end
+
+// ==================== 规则4：功率因数过低提示（INFO） ====================
+rule "Low Power Factor Info"
+    salience 40
+    no-loop true
+    when
+        $fact : DevicePropertyFact($pf : getDouble("powerFactor"), $pf != null, $pf < 0.8)
+    then
+        AlarmResult result = new AlarmResult();
+        result.setDeviceId($fact.getDeviceId());
+        result.setLevel("INFO");
+        result.setType("THRESHOLD");
+        result.setTitle("功率因数过低");
+        result.setContent("设备 " + $fact.getDeviceId() + " 功率因数 " + $pf + " 低于 0.8，建议进行无功补偿");
+        result.setPropertyIdentifier("powerFactor");
+        result.setAlarmValue($pf);
+        $fact.addResult(result);
+end
+
+// ==================== 规则5：能耗突增告警（WARNING） ====================
+rule "Abnormal Energy Spike Warning"
+    salience 50
+    no-loop true
+    when
+        $fact : DevicePropertyFact($ec : getDouble("energyConsumption"), $ec != null, $ec > 500.0)
+    then
+        AlarmResult result = new AlarmResult();
+        result.setDeviceId($fact.getDeviceId());
+        result.setLevel("WARNING");
+        result.setType("THRESHOLD");
+        result.setTitle("能耗突增告警");
+        result.setContent("设备 " + $fact.getDeviceId() + " 能耗 " + $ec + " kWh 超过突增阈值 500 kWh");
+        result.setPropertyIdentifier("energyConsumption");
+        result.setAlarmValue($ec);
+        $fact.addResult(result);
+end

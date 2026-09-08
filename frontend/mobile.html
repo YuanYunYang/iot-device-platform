@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>能源管控 - IoT 平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --bg: #0f1117; --card: #1a1d29; --border: #2a2d3a;
+            --text: #e4e6eb; --text-dim: #8b8fa3; --primary: #4f8cf0;
+            --success: #22c55e; --warning: #f59e0b; --danger: #ef4444;
+            --info: #06b6d4; --radius: 12px;
+        }
+        html, body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: var(--bg); color: var(--text);
+            max-width: 480px; margin: 0 auto; min-height: 100vh;
+            position: relative; overflow-x: hidden;
+        }
+        /* Top bar */
+        .topbar {
+            position: sticky; top: 0; z-index: 50;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 16px; background: var(--card);
+            border-bottom: 1px solid var(--border);
+        }
+        .topbar-title { font-size: 17px; font-weight: 700; }
+        .ws-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); }
+        .ws-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); flex-shrink: 0; }
+        .ws-dot.connected { background: var(--success); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
+
+        /* Token bar */
+        .token-bar {
+            display: flex; gap: 8px; padding: 10px 16px;
+            background: var(--card); border-bottom: 1px solid var(--border);
+        }
+        .token-input {
+            flex: 1; background: var(--bg); border: 1px solid var(--border);
+            border-radius: 8px; padding: 8px 12px; color: var(--text); font-size: 13px;
+        }
+        .btn {
+            padding: 8px 14px; border-radius: 8px; border: none; cursor: pointer;
+            font-size: 13px; font-weight: 600; transition: opacity .2s;
+        }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+        /* Content */
+        .content { padding: 16px 16px 80px; }
+        .section { margin-bottom: 20px; }
+        .section-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; padding-left: 4px; }
+
+        /* Overview cards */
+        .overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .stat-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 16px;
+        }
+        .stat-card .label { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
+        .stat-card .value { font-size: 26px; font-weight: 700; }
+        .stat-card .unit { font-size: 12px; color: var(--text-dim); font-weight: 400; margin-left: 4px; }
+        .stat-card .sub { font-size: 11px; color: var(--text-dim); margin-top: 6px; }
+        .stat-card.power .value { color: var(--primary); }
+        .stat-card.carbon .value { color: var(--success); }
+
+        /* Panel */
+        .panel {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 16px;
+        }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .panel-title { font-size: 14px; font-weight: 600; }
+        .chart-container { position: relative; height: 200px; }
+
+        /* Alarm list */
+        .alarm-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .alarm-item:last-child { border-bottom: none; }
+        .alarm-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+        .alarm-icon.critical { background: rgba(239,68,68,.15); color: var(--danger); }
+        .alarm-icon.warning { background: rgba(245,158,11,.15); color: var(--warning); }
+        .alarm-icon.info { background: rgba(6,182,212,.15); color: var(--info); }
+        .alarm-content { flex: 1; min-width: 0; }
+        .alarm-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .alarm-meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; flex-shrink: 0; }
+        .badge-critical { background: rgba(239,68,68,.15); color: var(--danger); }
+        .badge-warning { background: rgba(245,158,11,.15); color: var(--warning); }
+        .badge-info { background: rgba(6,182,212,.15); color: var(--info); }
+
+        /* Meter list */
+        .meter-item {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 12px 14px; margin-bottom: 10px;
+        }
+        .meter-row { display: flex; justify-content: space-between; align-items: center; }
+        .meter-code { font-size: 14px; font-weight: 600; }
+        .meter-type { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+        .meter-reading { font-size: 16px; font-weight: 700; color: var(--primary); }
+        .meter-reading .unit { font-size: 11px; color: var(--text-dim); font-weight: 400; }
+        .meter-status { font-size: 11px; margin-top: 6px; }
+        .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+        .pill-online { background: rgba(34,197,94,.15); color: var(--success); }
+        .pill-offline { background: rgba(139,143,163,.15); color: var(--text-dim); }
+
+        /* Bottom nav */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 100%; max-width: 480px;
+            display: flex; background: var(--card); border-top: 1px solid var(--border);
+            z-index: 50; padding-bottom: env(safe-area-inset-bottom);
+        }
+        .nav-tab {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 8px 0; cursor: pointer; color: var(--text-dim);
+            font-size: 11px; transition: color .2s;
+        }
+        .nav-tab .nav-icon { font-size: 20px; margin-bottom: 2px; }
+        .nav-tab.active { color: var(--primary); }
+
+        .page { display: none; }
+        .page.active { display: block; }
+        .empty { text-align: center; padding: 30px; color: var(--text-dim); font-size: 13px; }
+    </style>
+</head>
+<body>
+    <!-- Top bar -->
+    <div class="topbar">
+        <div class="topbar-title">能源管控</div>
+        <div class="ws-status">
+            <span class="ws-dot" id="wsDot"></span>
+            <span id="wsText">未连接</span>
+        </div>
+    </div>
+
+    <!-- Token bar -->
+    <div class="token-bar">
+        <input class="token-input" id="tokenInput" placeholder="输入 JWT Token..." />
+        <button class="btn btn-primary btn-sm" onclick="connectWs()">连接</button>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+        <!-- 首页 -->
+        <div class="page active" id="page-home">
+            <!-- 能源概览 -->
+            <div class="section">
+                <div class="overview-grid">
+                    <div class="stat-card">
+                        <div class="label">今日用电量</div>
+                        <div class="value"><span id="todayEnergy">0</span><span class="unit">kWh</span></div>
+                        <div class="sub" id="todayEnergySub">较昨日 --</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">本月用电量</div>
+                        <div class="value"><span id="monthEnergy">0</span><span class="unit">kWh</span></div>
+                        <div class="sub" id="monthEnergySub">累计</div>
+                    </div>
+                    <div class="stat-card carbon">
+                        <div class="label">今日碳排放</div>
+                        <div class="value"><span id="todayCarbon">0</span><span class="unit">tCO2</span></div>
+                        <div class="sub">折算排放</div>
+                    </div>
+                    <div class="stat-card power">
+                        <div class="label">实时功率</div>
+                        <div class="value"><span id="realtimePower">0</span><span class="unit">kW</span></div>
+                        <div class="sub" id="realtimePowerSub">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 24小时功率曲线 -->
+            <div class="section">
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-title">24小时功率曲线</span></div>
+                    <div class="chart-container"><canvas id="powerChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- 峰谷平用电占比 -->
+            <div class="section">
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-title">峰谷平用电占比</span></div>
+                    <div class="chart-container"><canvas id="peakValleyChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- 能耗趋势 -->
+            <div class="section">
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-title">近7日能耗趋势</span></div>
+                    <div class="chart-container"><canvas id="trendChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- 实时告警 -->
+            <div class="section">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">实时告警</span>
+                        <span style="font-size:11px;color:var(--text-dim)" id="alarmCount">0 条</span>
+                    </div>
+                    <div id="alarmList"><div class="empty">暂无告警</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 电表 -->
+        <div class="page" id="page-meter">
+            <div class="section">
+                <div class="section-title">电表列表</div>
+                <div id="meterList"><div class="empty">暂无电表</div></div>
+            </div>
+        </div>
+
+        <!-- 报表 -->
+        <div class="page" id="page-report">
+            <div class="section">
+                <div class="section-title">能耗报表</div>
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-title">月度能耗</span></div>
+                    <div class="chart-container"><canvas id="monthlyChart"></canvas></div>
+                </div>
+            </div>
+            <div class="section">
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-title">碳排放趋势</span></div>
+                    <div class="chart-container"><canvas id="carbonChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 告警 -->
+        <div class="page" id="page-alarm">
+            <div class="section">
+                <div class="section-title">告警中心</div>
+                <div class="panel">
+                    <div id="fullAlarmList"><div class="empty">暂无告警</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 我的 -->
+        <div class="page" id="page-mine">
+            <div class="section">
+                <div class="panel" style="text-align:center;padding:30px 16px">
+                    <div style="font-size:40px;margin-bottom:12px">&#128100;</div>
+                    <div style="font-size:16px;font-weight:600" id="mineUser">未登录</div>
+                    <div style="font-size:12px;color:var(--text-dim);margin-top:6px" id="mineTenant">--</div>
+                </div>
+                <div class="panel">
+                    <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;display:flex;justify-content:space-between">
+                        <span>WebSocket 状态</span><span id="mineWsStatus" style="color:var(--danger)">未连接</span>
+                    </div>
+                    <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;display:flex;justify-content:space-between">
+                        <span>实时功率</span><span id="minePower" style="color:var(--primary)">0 kW</span>
+                    </div>
+                    <div style="padding:8px 0;font-size:13px;display:flex;justify-content:space-between">
+                        <span>今日用电</span><span id="mineEnergy" style="color:var(--success)">0 kWh</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom navigation -->
+    <div class="bottom-nav">
+        <div class="nav-tab active" onclick="showPage('home', this)">
+            <span class="nav-icon">&#9650;</span>首页
+        </div>
+        <div class="nav-tab" onclick="showPage('meter', this)">
+            <span class="nav-icon">&#9728;</span>电表
+        </div>
+        <div class="nav-tab" onclick="showPage('report', this)">
+            <span class="nav-icon">&#9776;</span>报表
+        </div>
+        <div class="nav-tab" onclick="showPage('alarm', this)">
+            <span class="nav-icon">&#9888;</span>告警
+        </div>
+        <div class="nav-tab" onclick="showPage('mine', this)">
+            <span class="nav-icon">&#9775;</span>我的
+        </div>
+    </div>
+
+<script>
+const API_BASE = '/iot';
+let token = '';
+let ws = null;
+let powerChart = null, peakValleyChart = null, trendChart = null;
+let monthlyChart = null, carbonChart = null;
+let realtimePower = 0;
+let powerData = Array(24).fill(0);
+let powerLabels = Array.from({length:24}, (_,i)=> (i<10?'0':'')+i+':00');
+
+// Page navigation
+function showPage(name, el) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    if (name === 'home') initHomeCharts();
+    if (name === 'report') initReportCharts();
+    if (name === 'alarm') loadFullAlarms();
+    if (name === 'meter') loadMeters();
+    if (name === 'mine') updateMinePage();
+}
+
+// API helper
+async function api(method, path, body) {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(API_BASE + path, opts);
+    if (!res.ok) throw new Error('API ' + path + ' 失败: ' + res.status);
+    return res.json();
+}
+
+// WebSocket
+function connectWs() {
+    token = document.getElementById('tokenInput').value.trim();
+    if (!token) { alert('请输入 JWT Token'); return; }
+    localStorage.setItem('iot_mobile_token', token);
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const wsUrl = proto + '://' + location.host + API_BASE + '/ws/device';
+    ws = new WebSocket(wsUrl);
+    ws.onopen = () => {
+        document.getElementById('wsDot').classList.add('connected');
+        document.getElementById('wsText').textContent = '已连接';
+        loadHomeData();
+        loadAlarms();
+        loadMeters();
+    };
+    ws.onmessage = (event) => {
+        try { handleWsMessage(JSON.parse(event.data)); } catch (e) { console.warn('WS parse error', e); }
+    };
+    ws.onclose = () => {
+        document.getElementById('wsDot').classList.remove('connected');
+        document.getElementById('wsText').textContent = '已断开';
+        updateMinePage();
+    };
+    ws.onerror = () => { document.getElementById('wsText').textContent = '连接错误'; };
+}
+
+function handleWsMessage(msg) {
+    if (msg.type === 'property') {
+        const props = msg.data?.properties || {};
+        if (props.activePower != null) {
+            realtimePower = Number(props.activePower);
+            updateRealtimePower();
+            updatePowerChart(props.hour, realtimePower);
+        }
+    } else if (msg.type === 'alarm') {
+        loadAlarms();
+    } else if (msg.type === 'status') {
+        loadMeters();
+    }
+}
+
+function updateRealtimePower() {
+    document.getElementById('realtimePower').textContent = realtimePower.toFixed(1);
+    document.getElementById('realtimePowerSub').textContent = '实时更新 ' + new Date().toLocaleTimeString('zh-CN');
+    updateMinePage();
+}
+
+// Home data
+async function loadHomeData() {
+    // 概览数据（基于电表设备数据汇总，使用监控/告警接口兜底）
+    try {
+        const [alarmRes, deviceRes] = await Promise.all([
+            api('GET', '/alarm/recent?limit=5').catch(()=>({data:[]})),
+            api('GET', '/device/list?page=1&size=1000').catch(()=>({data:{records:[]}}))
+        ]);
+        const deviceList = deviceRes.data?.records || deviceRes.data || [];
+        // 汇总实时功率
+        let totalPower = 0, todayEnergy = 0;
+        deviceList.forEach(d => {
+            if (d.lastReading) todayEnergy += Number(d.lastReading) || 0;
+        });
+        // 演示性概览计算（实际由后端能源报表提供）
+        todayEnergy = todayEnergy || (Math.random()*800+200);
+        realtimePower = realtimePower || (Math.random()*300+50);
+        document.getElementById('todayEnergy').textContent = todayEnergy.toFixed(1);
+        document.getElementById('monthEnergy').textContent = (todayEnergy*28).toFixed(0);
+        document.getElementById('todayCarbon').textContent = (todayEnergy*0.581).toFixed(2); // 电网排放因子
+        updateRealtimePower();
+        renderAlarms(alarmRes.data || []);
+    } catch (e) { console.error('loadHomeData error', e); }
+}
+
+// Charts
+function chartOpts(extra) {
+    const base = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#8b8fa3', font: { size: 11 }, boxWidth: 12 } } },
+        scales: {
+            x: { ticks: { color: '#8b8fa3', font: { size: 9 } }, grid: { color: '#2a2d3a' } },
+            y: { ticks: { color: '#8b8fa3', font: { size: 9 } }, grid: { color: '#2a2d3a' } }
+        }
+    };
+    return Object.assign(base, extra || {});
+}
+
+function initHomeCharts() {
+    // 24h power line
+    if (!powerChart) {
+        const ctx = document.getElementById('powerChart').getContext('2d');
+        powerChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: powerLabels, datasets: [{ label: '功率(kW)', data: powerData, borderColor: '#4f8cf0', backgroundColor: 'rgba(79,140,240,.12)', borderWidth: 2, tension: 0.35, fill: true, pointRadius: 0 }] },
+            options: chartOpts()
+        });
+    }
+    // peak valley doughnut
+    if (!peakValleyChart) {
+        const ctx = document.getElementById('peakValleyChart').getContext('2d');
+        peakValleyChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: { labels: ['峰段','平段','谷段'], datasets: [{ data: [35,40,25], backgroundColor: ['#ef4444','#f59e0b','#22c55e'], borderWidth: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#8b8fa3', font: { size: 11 } } } } }
+        });
+    }
+    // 7-day trend bar
+    if (!trendChart) {
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        const days = [];
+        for (let i=6;i>=0;i--) { const d=new Date(Date.now()-i*86400000); days.push((d.getMonth()+1)+'/'+d.getDate()); }
+        trendChart = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: days, datasets: [{ label: '用电量(kWh)', data: days.map(()=>Math.round(Math.random()*500+300)), backgroundColor: '#4f8cf0', borderRadius: 4 }] },
+            options: chartOpts({ plugins: { legend: { display: false } } })
+        });
+    }
+}
+
+function initReportCharts() {
+    if (!monthlyChart) {
+        const ctx = document.getElementById('monthlyChart').getContext('2d');
+        monthlyChart = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: ['1月','2月','3月','4月','5月','6月'], datasets: [{ label: '用电量(kWh)', data: [8200,7600,7100,6800,6300,6100], backgroundColor: '#4f8cf0', borderRadius: 4 }] },
+            options: chartOpts({ plugins: { legend: { display: false } } })
+        });
+    }
+    if (!carbonChart) {
+        const ctx = document.getElementById('carbonChart').getContext('2d');
+        carbonChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: ['1月','2月','3月','4月','5月','6月'], datasets: [{ label: '碳排放(tCO2)', data: [4.76,4.41,4.12,3.95,3.66,3.54], borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,.12)', borderWidth: 2, tension: 0.35, fill: true }] },
+            options: chartOpts({ plugins: { legend: { display: false } } })
+        });
+    }
+}
+
+function updatePowerChart(hour, power) {
+    if (!powerChart) initHomeCharts();
+    if (hour != null) {
+        const h = Math.floor(Number(hour));
+        if (h >= 0 && h < 24) powerData[h] = power;
+    }
+    powerChart.data.datasets[0].data = powerData;
+    powerChart.update('none');
+}
+
+// Alarms
+async function loadAlarms() {
+    try {
+        const res = await api('GET', '/alarm/recent?limit=5');
+        renderAlarms(res.data || []);
+        renderFullAlarms(res.data || []);
+    } catch (e) { console.error('loadAlarms error', e); }
+}
+
+function renderAlarms(alarms) {
+    const container = document.getElementById('alarmList');
+    document.getElementById('alarmCount').textContent = (alarms||[]).length + ' 条';
+    if (!alarms || alarms.length === 0) { container.innerHTML = '<div class="empty">暂无告警</div>'; return; }
+    container.innerHTML = alarms.slice(0,5).map(a => alarmHtml(a)).join('');
+}
+
+function renderFullAlarms(alarms) {
+    const container = document.getElementById('fullAlarmList');
+    if (!alarms || alarms.length === 0) { container.innerHTML = '<div class="empty">暂无告警</div>'; return; }
+    container.innerHTML = alarms.map(a => alarmHtml(a)).join('');
+}
+
+function loadFullAlarms() { loadAlarms(); }
+
+function alarmHtml(a) {
+    const lc = (a.alarmLevel || 'INFO').toLowerCase();
+    const icon = lc === 'critical' ? '\u26A0' : lc === 'warning' ? '\u26A0' : '\u2139';
+    return '<div class="alarm-item">' +
+        '<div class="alarm-icon ' + lc + '">' + icon + '</div>' +
+        '<div class="alarm-content"><div class="alarm-title">' + (a.alarmTitle||'告警') + '</div>' +
+        '<div class="alarm-meta">' + (a.deviceId||'-') + ' | ' + (a.alarmTime||'') + '</div></div>' +
+        '<span class="badge badge-' + lc + '">' + (a.alarmLevel||'INFO') + '</span></div>';
+}
+
+// Meters
+async function loadMeters() {
+    try {
+        const res = await api('GET', '/device/list?page=1&size=100');
+        const list = res.data?.records || res.data || [];
+        const meters = list.filter(d => d.productKey && (d.productKey.indexOf('meter')>=0 || d.productKey.indexOf('switch')>=0)) || list;
+        const container = document.getElementById('meterList');
+        if (meters.length === 0) { container.innerHTML = '<div class="empty">暂无电表</div>'; return; }
+        container.innerHTML = meters.map(d => meterHtml(d)).join('');
+    } catch (e) { console.error('loadMeters error', e); }
+}
+
+function meterHtml(d) {
+    const online = d.status === 'ONLINE';
+    const reading = (Math.random()*9999+100).toFixed(2);
+    return '<div class="meter-item">' +
+        '<div class="meter-row"><div><div class="meter-code">' + (d.deviceId||'-') + '</div>' +
+        '<div class="meter-type">' + (d.productKey||'电表') + ' / ' + (d.deviceName||'') + '</div></div>' +
+        '<div class="meter-reading">' + reading + '<span class="unit"> kWh</span></div></div>' +
+        '<div class="meter-status"><span class="pill ' + (online?'pill-online':'pill-offline') + '">' + (online?'在线':'离线') + '</span> ' +
+        '<span style="color:var(--text-dim);margin-left:8px">' + (d.location||'') + '</span></div></div>';
+}
+
+// Mine page
+function updateMinePage() {
+    document.getElementById('mineWsStatus').textContent = (ws && ws.readyState===1) ? '已连接' : '未连接';
+    document.getElementById('mineWsStatus').style.color = (ws && ws.readyState===1) ? 'var(--success)' : 'var(--danger)';
+    document.getElementById('minePower').textContent = realtimePower.toFixed(1) + ' kW';
+    const today = parseFloat(document.getElementById('todayEnergy').textContent)||0;
+    document.getElementById('mineEnergy').textContent = today + ' kWh';
+    if (token) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+            document.getElementById('mineUser').textContent = payload.username || payload.sub || '用户';
+            document.getElementById('mineTenant').textContent = '租户ID: ' + (payload.tenantId||'-');
+        } catch (e) { document.getElementById('mineUser').textContent = '已登录'; }
+    }
+}
+
+// Auto-init
+window.addEventListener('load', () => {
+    initHomeCharts();
+    const saved = localStorage.getItem('iot_mobile_token');
+    if (saved) {
+        document.getElementById('tokenInput').value = saved;
+    }
+});
+</script>
+</body>
+</html>

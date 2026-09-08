@@ -7,6 +7,7 @@ import com.iot.platform.model.entity.ThingModel;
 import com.iot.platform.model.enums.AlarmLevelEnum;
 import com.iot.platform.model.enums.DeviceStatusEnum;
 import com.iot.platform.model.vo.MonitorDataVO;
+import com.iot.platform.mqtt.MqttTopicHandler;
 import com.iot.platform.repository.DeviceMapper;
 import com.iot.platform.repository.ThingModelMapper;
 import com.iot.platform.service.AlarmService;
@@ -63,6 +64,7 @@ public class MqttMessageServiceImpl implements MqttMessageService {
     private final CommandResponseHolder commandResponseHolder;
     private final InfluxDBClient influxDBClient;
     private final InfluxDBConfig influxDBConfig;
+    private final MqttTopicHandler topicHandler;
 
     /**
      * 统一消息分发入口（异步执行，避免阻塞 MQTT 回调线程）
@@ -81,6 +83,7 @@ public class MqttMessageServiceImpl implements MqttMessageService {
             case "lifecycle" -> handleLifecycle(dto);
             case "heartbeat" -> handleHeartbeat(dto);
             case "command/resp", "command_resp" -> handleCommandResponse(dto);
+            case "ota/progress", "ota_progress" -> topicHandler.handleOtaProgress(dto.getDeviceId(), dto.getPayload());
             default -> log.warn("未知的消息类型，忽略: type={}, deviceId={}", dto.getMessageType(), dto.getDeviceId());
         }
     }

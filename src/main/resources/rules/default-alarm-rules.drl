@@ -1,0 +1,71 @@
+package com.iot.platform.rules;
+
+import com.iot.platform.model.dto.DevicePropertyFact;
+import com.iot.platform.model.dto.AlarmResult;
+
+/**
+ * 默认告警规则集
+ * <p>
+ * 规则评估的事实对象为 DevicePropertyFact，包含设备上报的属性 Map。
+ * 规则触发后在 RHS 构造 AlarmResult 并通过 fact.addResult(...) 回收，
+ * 由 RuleEngineService 统一落库为告警记录。
+ *
+ * @author iot-platform
+ */
+
+// ==================== 规则1：温度连续超阈值告警（CRITICAL） ====================
+rule "Temperature Over Threshold Critical"
+    salience 100
+    no-loop true
+    when
+        $fact : DevicePropertyFact($t : getDouble("temperature"), $t != null, $t > 50.0)
+    then
+        AlarmResult result = new AlarmResult();
+        result.setDeviceId($fact.getDeviceId());
+        result.setLevel("CRITICAL");
+        result.setType("THRESHOLD");
+        result.setTitle("温度超阈值告警");
+        result.setContent("设备 " + $fact.getDeviceId() + " 温度 " + $t + " 超过阈值 50.0℃");
+        result.setPropertyIdentifier("temperature");
+        result.setAlarmValue($t);
+        $fact.addResult(result);
+end
+
+// ==================== 规则2：电池低电量 + 离线风险复合告警（WARNING） ====================
+rule "Battery Low and Offline Risk Warning"
+    salience 50
+    no-loop true
+    when
+        $fact : DevicePropertyFact(
+            $bat : getDouble("battery"), $bat != null, $bat < 20.0,
+            $sig : getDouble("signalStrength"), $sig != null, $sig < -90.0
+        )
+    then
+        AlarmResult result = new AlarmResult();
+        result.setDeviceId($fact.getDeviceId());
+        result.setLevel("WARNING");
+        result.setType("COMPOSITE");
+        result.setTitle("电池低电量且信号弱复合告警");
+        result.setContent("设备 " + $fact.getDeviceId() + " 电量 " + $bat + "% 且信号强度 " + $sig + " dBm，存在离线风险");
+        result.setPropertyIdentifier("battery");
+        result.setAlarmValue($bat);
+        $fact.addResult(result);
+end
+
+// ==================== 规则3：湿度异常告警（INFO） ====================
+rule "Humidity Abnormal Info"
+    salience 10
+    no-loop true
+    when
+        $fact : DevicePropertyFact($h : getDouble("humidity"), $h != null, ($h > 80.0 || $h < 20.0))
+    then
+        AlarmResult result = new AlarmResult();
+        result.setDeviceId($fact.getDeviceId());
+        result.setLevel("INFO");
+        result.setType("THRESHOLD");
+        result.setTitle("湿度异常告警");
+        result.setContent("设备 " + $fact.getDeviceId() + " 湿度 " + $h + "% 超出正常范围 [20,80]");
+        result.setPropertyIdentifier("humidity");
+        result.setAlarmValue($h);
+        $fact.addResult(result);
+end
