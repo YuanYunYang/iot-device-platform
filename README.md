@@ -16,7 +16,7 @@
 
 ## 平台概览
 
-![平台架构总览](frontend/mobile.html)
+![平台架构总览](docs/images/dashboard-pc.jpg)
 
 平台采用 **多租户 + 微服务就绪** 架构，设备通过 MQTT 接入，经 Kafka 削峰后异步落库，支持水平扩展至 3~10 个实例。
 
@@ -43,7 +43,7 @@
 
 <p align="center">
   <a href="frontend/index.html">
-    <img src="frontend/index.html" alt="PC 管理台" width="90%"/>
+    <img src="docs/images/dashboard-pc.jpg" alt="PC 管理台" width="90%"/>
   </a>
 </p>
 
@@ -53,7 +53,7 @@
 
 <p align="center">
   <a href="frontend/mobile.html">
-    <img src="frontend/mobile.html" alt="移动端 H5" width="30%"/>
+    <img src="docs/images/dashboard-mobile.jpg" alt="移动端 H5" width="30%"/>
   </a>
 </p>
 
