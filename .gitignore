@@ -37,3 +37,4 @@ application-prod.yml
 *.db
 *.sqlite
 data/
+.github/
