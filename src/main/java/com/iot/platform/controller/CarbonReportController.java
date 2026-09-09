@@ -26,7 +26,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/iot/carbon/report")
+@RequestMapping("/v1/carbon/report")
 @RequiredArgsConstructor
 @Tag(name = "碳排报告", description = "碳排放报告生成与导出接口")
 public class CarbonReportController {

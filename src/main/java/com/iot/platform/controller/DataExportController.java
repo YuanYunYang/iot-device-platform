@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Slf4j
 @RestController
-@RequestMapping("/iot/export")
+@RequestMapping("/v1/export")
 @RequiredArgsConstructor
 @Tag(name = "数据导出", description = "能耗报告、碳排放报告导出接口")
 public class DataExportController {

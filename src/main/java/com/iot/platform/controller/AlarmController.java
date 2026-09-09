@@ -21,7 +21,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/alarm")
+@RequestMapping("/v1/alarm")
 @RequiredArgsConstructor
 @Tag(name = "告警管理", description = "告警记录查询接口")
 public class AlarmController {

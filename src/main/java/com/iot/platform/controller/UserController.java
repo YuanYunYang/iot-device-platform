@@ -29,7 +29,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/v1/user")
 @RequiredArgsConstructor
 @Tag(name = "用户管理", description = "用户创建、查询、删除及状态管理接口")
 public class UserController {

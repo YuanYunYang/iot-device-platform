@@ -22,7 +22,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/monitor")
+@RequestMapping("/v1/monitor")
 @RequiredArgsConstructor
 @Tag(name = "实时监控", description = "设备监控数据查询接口")
 public class MonitorController {

@@ -24,7 +24,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/iot/carbon")
+@RequestMapping("/v1/carbon")
 @RequiredArgsConstructor
 @Tag(name = "碳排放核算", description = "碳排放计算、查询及排放因子管理相关接口")
 public class CarbonEmissionController {

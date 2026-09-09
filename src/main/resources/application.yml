@@ -38,13 +38,13 @@ spring:
         master:
           url: jdbc:mysql://${DB_HOST:localhost}:3306/iot_platform?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
           username: ${DB_USER:root}
-          password: ${DB_PASSWORD:root123456}
+          password: ${DB_PASSWORD:}
           driver-class-name: com.mysql.cj.jdbc.Driver
         # 从库（读）
         slave:
           url: jdbc:mysql://${DB_SLAVE_HOST:localhost}:3307/iot_platform?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
           username: ${DB_USER:root}
-          password: ${DB_PASSWORD:root123456}
+          password: ${DB_PASSWORD:}
           driver-class-name: com.mysql.cj.jdbc.Driver
       hikari:
         # 连接池调优（单节点 20 连接，支持 400 并发请求）
@@ -60,7 +60,7 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:redis123456}
+      password: ${REDIS_PASSWORD:}
       database: 0
       timeout: 5000ms
       lettuce:
@@ -78,7 +78,7 @@ spring:
   kafka:
     bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
     producer:
-      key-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       acks: 1
       batch-size: 16384
@@ -98,13 +98,20 @@ spring:
       ack-mode: manual_immediate
       concurrency: 3
 
+  # ===================== Flyway 数据库迁移 =====================
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+
 # ===================== MyBatis-Plus 配置 =====================
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.iot.platform.model.entity
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: ${MYBATIS_LOG_IMPL:org.apache.ibatis.logging.stdout.StdOutImpl}
   global-config:
     db-config:
       id-type: auto
@@ -131,7 +138,7 @@ mqtt:
 # ===================== InfluxDB 2.0 配置 =====================
 influxdb:
   url: http://${INFLUX_HOST:localhost}:8086
-  token: ${INFLUX_TOKEN:iot-platform-token-very-long-secret-string}
+  token: ${INFLUX_TOKEN:}
   org: iot
   bucket: device_data
 
@@ -145,7 +152,7 @@ iot:
 
 # ===================== JWT 认证配置 =====================
 jwt:
-  secret: ${JWT_SECRET:iotPlatformJwtSecretKey2026VeryLongSecretString}
+  secret: ${JWT_SECRET:}
   expiration: 86400000
 
 # ===================== Knife4j 文档配置 =====================
@@ -190,7 +197,7 @@ management:
 # ===================== 日志配置 =====================
 logging:
   level:
-    com.iot.platform: ${LOG_LEVEL:debug}
+    com.iot.platform: ${LOG_LEVEL:info}
     org.eclipse.paho: info
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

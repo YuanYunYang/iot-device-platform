@@ -26,7 +26,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/ota")
+@RequestMapping("/v1/ota")
 @RequiredArgsConstructor
 @Tag(name = "OTA固件升级", description = "固件管理、升级任务与设备进度接口")
 public class OtaController {

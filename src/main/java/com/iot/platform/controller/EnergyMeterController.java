@@ -25,7 +25,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/iot/energy/meter")
+@RequestMapping("/v1/energy/meter")
 @RequiredArgsConstructor
 @Tag(name = "能源表管理", description = "能源表创建、查询、删除相关接口")
 public class EnergyMeterController {

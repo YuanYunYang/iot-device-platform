@@ -21,7 +21,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/product")
+@RequestMapping("/v1/product")
 @RequiredArgsConstructor
 @Tag(name = "产品物模型管理", description = "产品创建、查询及物模型定义接口")
 public class ProductController {

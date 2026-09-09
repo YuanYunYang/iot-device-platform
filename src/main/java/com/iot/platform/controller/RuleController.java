@@ -23,7 +23,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/rule")
+@RequestMapping("/v1/rule")
 @RequiredArgsConstructor
 @Tag(name = "告警规则引擎", description = "Drools 告警规则管理与评估接口")
 public class RuleController {

@@ -26,7 +26,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/device")
+@RequestMapping("/v1/device")
 @RequiredArgsConstructor
 @Tag(name = "设备管理", description = "设备注册、查询、控制相关接口")
 public class DeviceController {

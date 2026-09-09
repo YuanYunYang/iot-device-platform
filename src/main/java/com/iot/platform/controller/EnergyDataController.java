@@ -28,7 +28,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/iot/energy/data")
+@RequestMapping("/v1/energy/data")
 @RequiredArgsConstructor
 @Tag(name = "能耗数据", description = "能耗历史查询、实时读数、汇总统计接口")
 public class EnergyDataController {

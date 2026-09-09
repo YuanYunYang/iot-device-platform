@@ -24,7 +24,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/iot/energy/report")
+@RequestMapping("/v1/energy/report")
 @RequiredArgsConstructor
 @Tag(name = "能耗分析报表", description = "能耗报表生成、查询及尖峰平谷分析相关接口")
 public class EnergyReportController {

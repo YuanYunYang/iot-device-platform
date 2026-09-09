@@ -24,7 +24,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/iot/dispatch")
+@RequestMapping("/v1/dispatch")
 @RequiredArgsConstructor
 @Tag(name = "负荷调度策略", description = "负荷调度策略管理与执行接口")
 public class LoadDispatchController {
