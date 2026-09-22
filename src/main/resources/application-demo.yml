@@ -1,0 +1,50 @@
+# ============================================================
+# 轻量演示环境配置（单机阿里云轻量服务器）
+# ============================================================
+spring:
+  datasource:
+    dynamic:
+      primary: master
+      strict: false
+      datasource:
+        master:
+          url: jdbc:mysql://${DB_HOST:mysql}:3306/iot_platform?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
+          username: ${DB_USER:root}
+          password: ${DB_PASSWORD:root123456}
+          driver-class-name: com.mysql.cj.jdbc.Driver
+        # 演示环境无从库，读写都走同一 MySQL
+        slave:
+          url: jdbc:mysql://${DB_HOST:mysql}:3306/iot_platform?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+          username: ${DB_USER:root}
+          password: ${DB_PASSWORD:root123456}
+          driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:redis123456}
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:kafka:9092}
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+
+mqtt:
+  host: ${MQTT_HOST:tcp://mosquitto:1883}
+  username: ${MQTT_USER:}
+  password: ${MQTT_PASSWORD:}
+  # Mosquitto 单实例无需共享订阅前缀
+  topic-prefix: iot/device/#
+
+influxdb:
+  url: http://${INFLUX_HOST:influxdb}:8086
+  token: ${INFLUX_TOKEN:iot-platform-token-very-long-secret-string}
+
+jwt:
+  secret: ${JWT_SECRET:iotPlatformDemoJwtSecretKey2026ForCustomerShow}
+
+logging:
+  level:
+    com.iot.platform: info
+    org.eclipse.paho: warn

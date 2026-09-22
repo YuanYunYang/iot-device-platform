@@ -148,7 +148,8 @@
                     <span class="ws-dot" id="wsDot"></span>
                     <span id="wsText">未连接</span>
                 </div>
-                <input class="token-input" id="tokenInput" placeholder="输入 JWT Token..." />
+                <input class="token-input" id="tokenInput" placeholder="JWT Token 或点登录" />
+                <button class="btn btn-success btn-sm" onclick="loginDemo()">登录</button>
                 <button class="btn btn-primary btn-sm" onclick="connectWs()">连接</button>
             </div>
         </div>
@@ -320,7 +321,7 @@
 </div>
 
 <script>
-const API_BASE = '/iot';
+const API_BASE = '/iot/v1';
 let token = '';
 let ws = null;
 let realtimeChart = null;
@@ -363,7 +364,7 @@ function connectWs() {
     token = document.getElementById('tokenInput').value.trim();
     if (!token) { alert('请输入 JWT Token'); return; }
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    ws = new WebSocket(`${proto}://${location.host}${API_BASE}/ws/device`);
+    ws = new WebSocket(`${proto}://${location.host}/iot/ws/device`);
     ws.onopen = () => {
         document.getElementById('wsDot').classList.add('connected');
         document.getElementById('wsText').textContent = '已连接';
@@ -641,6 +642,28 @@ async function saveRule() {
     } catch (e) { alert('保存失败: ' + e.message); }
 }
 
+// Demo login (admin / admin123)
+async function loginDemo() {
+    try {
+        const res = await fetch('/iot/v1/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: 'admin', password: 'admin123' })
+        });
+        const data = await res.json();
+        const tok = data?.data?.token || data?.token;
+        if (!tok) throw new Error(data?.message || '登录失败');
+        document.getElementById('tokenInput').value = tok;
+        token = tok;
+        localStorage.setItem('iot_token', tok);
+        connectWs();
+        loadDashboard();
+        alert('登录成功');
+    } catch (e) {
+        alert('登录失败: ' + e.message);
+    }
+}
+
 // Auto-init
 window.addEventListener('load', () => {
     initRealtimeChart();
@@ -648,6 +671,8 @@ window.addEventListener('load', () => {
     const savedToken = localStorage.getItem('iot_token');
     if (savedToken) {
         document.getElementById('tokenInput').value = savedToken;
+        token = savedToken;
+        loadDashboard();
     }
 });
 
