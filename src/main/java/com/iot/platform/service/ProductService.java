@@ -53,4 +53,19 @@ public interface ProductService extends IService<Product> {
      * @return 产品列表
      */
     List<Product> listProducts();
+
+    /**
+     * 更新产品基本信息
+     *
+     * @param product 产品信息（必须含 id）
+     * @return 更新后的产品
+     */
+    Product updateProduct(Product product);
+
+    /**
+     * 删除产品（逻辑删除）
+     *
+     * @param id 产品主键
+     */
+    void deleteProduct(Long id);
 }
