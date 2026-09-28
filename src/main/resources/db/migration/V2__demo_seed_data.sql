@@ -29,17 +29,17 @@ UPDATE `device` SET `status`='ONLINE', `firmware_version`='2.0.1',
 WHERE `device_id`='device_002' AND `tenant_id`=1;
 
 INSERT INTO `device` (`tenant_id`,`device_id`,`device_name`,`product_id`,`product_key`,`device_secret`,`status`,`firmware_version`,`ip_address`,`last_online_time`,`last_heartbeat_time`,`location`,`remark`)
-SELECT * FROM (
-  SELECT 1 AS t,'device_003','A栋配电室能源网关',3,'energy_gateway','secret_003','ONLINE','1.0.5','10.0.1.21',NOW(),NOW(),'A栋配电室','演示-主站' UNION ALL
-  SELECT 1,'device_004','B栋配电室能源网关',3,'energy_gateway','secret_004','ONLINE','1.0.5','10.0.1.22',NOW(),NOW(),'B栋配电室','演示' UNION ALL
-  SELECT 1,'device_005','研发中心空调-01',4,'smart_ac','secret_005','ONLINE','3.1.0','10.0.2.31',NOW(),NOW(),'研发中心3F','演示' UNION ALL
-  SELECT 1,'device_006','研发中心空调-02',4,'smart_ac','secret_006','OFFLINE','3.0.2','10.0.2.32',DATE_SUB(NOW(), INTERVAL 2 HOUR),DATE_SUB(NOW(), INTERVAL 2 HOUR),'研发中心3F','演示-离线' UNION ALL
-  SELECT 1,'device_007','地下车库充电桩-A1',5,'ev_charger','secret_007','ONLINE','1.4.0','10.0.3.41',NOW(),NOW(),'地下车库A区','演示' UNION ALL
-  SELECT 1,'device_008','地下车库充电桩-A2',5,'ev_charger','secret_008','ONLINE','1.4.0','10.0.3.42',NOW(),NOW(),'地下车库A区','演示' UNION ALL
-  SELECT 1,'device_009','展厅温湿度传感器',1,'temp_hum_sensor','secret_009','ONLINE','1.2.0','10.0.1.19',NOW(),NOW(),'一楼展厅','演示' UNION ALL
-  SELECT 1,'device_010','机房温湿度传感器',1,'temp_hum_sensor','secret_010','ONLINE','1.1.8','10.0.1.18',NOW(),NOW(),'机房','演示' UNION ALL
-  SELECT 1,'device_011','仓储区智能开关',2,'smart_switch','secret_011','OFFLINE','2.0.0','10.0.1.50',DATE_SUB(NOW(), INTERVAL 1 DAY),DATE_SUB(NOW(), INTERVAL 1 DAY),'仓储区','演示-离线' UNION ALL
-  SELECT 1,'device_012','访客区智能开关',2,'smart_switch','secret_012','ONLINE','2.0.1','10.0.1.51',NOW(),NOW(),'访客区','演示'
+SELECT tenant_id, device_id, device_name, product_id, product_key, device_secret, status, firmware_version, ip_address, last_online_time, last_heartbeat_time, location, remark FROM (
+  SELECT 1 AS tenant_id,'device_003' AS device_id,'A栋配电室能源网关' AS device_name,3 AS product_id,'energy_gateway' AS product_key,'secret_003' AS device_secret,'ONLINE' AS status,'1.0.5' AS firmware_version,'10.0.1.21' AS ip_address,NOW() AS last_online_time,NOW() AS last_heartbeat_time,'A栋配电室' AS location,'演示-主站' AS remark
+  UNION ALL SELECT 1,'device_004','B栋配电室能源网关',3,'energy_gateway','secret_004','ONLINE','1.0.5','10.0.1.22',NOW(),NOW(),'B栋配电室','演示'
+  UNION ALL SELECT 1,'device_005','研发中心空调-01',4,'smart_ac','secret_005','ONLINE','3.1.0','10.0.2.31',NOW(),NOW(),'研发中心3F','演示'
+  UNION ALL SELECT 1,'device_006','研发中心空调-02',4,'smart_ac','secret_006','OFFLINE','3.0.2','10.0.2.32',DATE_SUB(NOW(), INTERVAL 2 HOUR),DATE_SUB(NOW(), INTERVAL 2 HOUR),'研发中心3F','演示-离线'
+  UNION ALL SELECT 1,'device_007','地下车库充电桩-A1',5,'ev_charger','secret_007','ONLINE','1.4.0','10.0.3.41',NOW(),NOW(),'地下车库A区','演示'
+  UNION ALL SELECT 1,'device_008','地下车库充电桩-A2',5,'ev_charger','secret_008','ONLINE','1.4.0','10.0.3.42',NOW(),NOW(),'地下车库A区','演示'
+  UNION ALL SELECT 1,'device_009','展厅温湿度传感器',1,'temp_hum_sensor','secret_009','ONLINE','1.2.0','10.0.1.19',NOW(),NOW(),'一楼展厅','演示'
+  UNION ALL SELECT 1,'device_010','机房温湿度传感器',1,'temp_hum_sensor','secret_010','ONLINE','1.1.8','10.0.1.18',NOW(),NOW(),'机房','演示'
+  UNION ALL SELECT 1,'device_011','仓储区智能开关',2,'smart_switch','secret_011','OFFLINE','2.0.0','10.0.1.50',DATE_SUB(NOW(), INTERVAL 1 DAY),DATE_SUB(NOW(), INTERVAL 1 DAY),'仓储区','演示-离线'
+  UNION ALL SELECT 1,'device_012','访客区智能开关',2,'smart_switch','secret_012','ONLINE','2.0.1','10.0.1.51',NOW(),NOW(),'访客区','演示'
 ) AS tmp
 WHERE NOT EXISTS (SELECT 1 FROM `device` d WHERE d.device_id=tmp.device_id AND d.tenant_id=1);
 
