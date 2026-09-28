@@ -30,11 +30,12 @@ metadata:
   namespace: iot-platform
 type: Opaque
 stringData:
-  DB_PASSWORD: "root123456"
+  # 部署前请替换为真实密钥，建议改用 sealed-secrets / 外部密钥管理
+  DB_PASSWORD: "CHANGE_ME_DB_PASSWORD"
   DB_USER: "root"
-  REDIS_PASSWORD: "redis123456"
-  JWT_SECRET: "iotPlatformJwtSecretKey2026VeryLongSecretString"
-  INFLUX_TOKEN: "iot-platform-token-very-long-secret-string"
+  REDIS_PASSWORD: "CHANGE_ME_REDIS_PASSWORD"
+  JWT_SECRET: "CHANGE_ME_JWT_SECRET_AT_LEAST_32_CHARS"
+  INFLUX_TOKEN: "CHANGE_ME_INFLUX_TOKEN"
 ---
 # ==================== Deployment ====================
 apiVersion: apps/v1

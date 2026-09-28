@@ -135,48 +135,7 @@ CREATE TABLE `sys_user` (
     KEY `idx_tenant_id` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统用户表';
 
--- ============================================================
--- 初始数据
--- ============================================================
-
--- 默认租户（ID=1）
-INSERT INTO `tenant` (`id`, `tenant_code`, `tenant_name`, `tenant_type`, `device_limit`, `user_limit`, `contact_name`, `contact_phone`, `expire_time`)
-VALUES (1, 'default', '默认租户', 'ENTERPRISE', 100000, 200, '管理员', '13800000000', '2027-12-31 23:59:59');
-
--- 默认超级管理员（tenant_id=0 表示跨租户超管，用户名: admin，密码: admin123）
-INSERT INTO `sys_user` (`tenant_id`, `username`, `password`, `role`, `status`)
-VALUES (0, 'admin', '$2a$10$N.ZOn9G6/YLFixAgoMn6SOaGMbWVn0r3Q8J8zv3T3T3oEMrAfK8m', 'SUPER_ADMIN', 1);
-
--- 默认租户管理员（tenant_id=1）
-INSERT INTO `sys_user` (`tenant_id`, `username`, `password`, `role`, `status`)
-VALUES (1, 'tenant_admin', '$2a$10$N.ZOn9G6/YLFixAgoMn6SOaGMbWVn0r3Q8J8zv3T3T3oEMrAfK8m', 'SYSTEM_ADMIN', 1);
-
--- 演示产品（tenant_id=1）
-INSERT INTO `product` (`tenant_id`, `product_key`, `product_name`, `product_type`, `node_type`, `net_type`, `data_format`, `description`)
-VALUES
-(1, 'temp_hum_sensor', '温湿度传感器', 'sensor', 'DEVICE', 'MQTT', 'JSON', '采集环境温度与湿度'),
-(1, 'smart_switch', '智能开关', 'switch', 'DEVICE', 'MQTT', 'JSON', '支持远程开关控制');
-
--- 物模型（tenant_id=1）
-INSERT INTO `thing_model` (`tenant_id`, `product_id`, `identifier`, `name`, `type`, `data_type`, `unit`, `min_value`, `max_value`, `alarm_level`, `description`)
-VALUES
-(1, 1, 'temperature', '温度', 'property', 'float', '℃', -20, 40, 'CRITICAL', '环境温度'),
-(1, 1, 'humidity', '湿度', 'property', 'float', '%', 0, 100, 'WARNING', '环境湿度'),
-(1, 1, 'battery', '电量', 'property', 'int', '%', 0, 100, 'WARNING', '电池电量'),
-(1, 2, 'switch', '开关状态', 'property', 'bool', NULL, NULL, NULL, NULL, '开关状态'),
-(1, 2, 'power', '功率', 'property', 'float', 'W', 0, 5000, 'CRITICAL', '当前功率');
-
--- 演示设备（tenant_id=1）
-INSERT INTO `device` (`tenant_id`, `device_id`, `device_name`, `product_id`, `product_key`, `device_secret`, `status`, `location`, `remark`)
-VALUES
-(1, 'device_001', '会议室温湿度传感器', 1, 'temp_hum_sensor', 'secret_001', 'UNKNOWN', 'A栋3楼会议室', '演示设备'),
-(1, 'device_002', '大厅智能开关', 2, 'smart_switch', 'secret_002', 'UNKNOWN', 'A栋1楼大厅', '演示设备');
-
--- ============================================================
--- 扩展模块表（OTA 固件升级 / Drools 告警规则引擎）
--- ============================================================
-
--- ==================== 固件包表 ====================
+-- ==================== 固件表 ====================
 DROP TABLE IF EXISTS `firmware`;
 CREATE TABLE `firmware` (
     `id`            BIGINT       NOT NULL AUTO_INCREMENT,
@@ -345,28 +304,6 @@ CREATE TABLE `carbon_emission` (
     KEY `idx_tenant_source` (`tenant_id`, `source_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='碳排放记录表';
 
--- ==================== 能源管理模块初始数据 ====================
-
--- 默认排放因子（tenant_id=1）
-INSERT INTO `emission_factor` (`tenant_id`, `source_type`, `factor_value`, `unit`) VALUES
-(1, 'ELECTRICITY', 0.5810, 'kgCO2/kWh'),
-(1, 'NATURAL_GAS', 2.1622, 'kgCO2/m³'),
-(1, 'DIESEL', 2.7301, 'kgCO2/L'),
-(1, 'COAL', 1.9770, 'kgCO2/kg');
-
--- 演示能源表（tenant_id=1）
-INSERT INTO `energy_meter` (`tenant_id`, `meter_code`, `meter_name`, `meter_type`, `protocol`, `location`, `device_id`, `ct_ratio`, `pt_ratio`, `status`) VALUES
-(1, 'EM_001', '1号变压器总表', 'ELECTRICITY', 'MQTT', 'A栋配电室', 'device_001', 150.0, 1.0, 1),
-(1, 'EM_002', 'B栋照明电表', 'ELECTRICITY', 'MODBUS', 'B栋1楼', NULL, 100.0, 1.0, 1),
-(1, 'WM_001', '厂区总水表', 'WATER', 'MODBUS', '厂区入口', NULL, NULL, NULL, 1);
-
--- ============================================================
--- 能耗分析报表（能源管理模块扩展表）
--- 注：energy_meter、energy_reading、emission_factor、carbon_emission 表
--- 已在上方「能源管理模块表」中定义，此处不再重复创建。
--- ============================================================
-
--- ==================== 能耗报表表 ====================
 DROP TABLE IF EXISTS `energy_report`;
 CREATE TABLE `energy_report` (
     `id`              BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键ID',

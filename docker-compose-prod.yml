@@ -12,7 +12,7 @@ services:
     container_name: iot-mysql-master
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root123456}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
       MYSQL_DATABASE: iot_platform
       TZ: Asia/Shanghai
     ports:
@@ -37,7 +37,7 @@ services:
     container_name: iot-mysql-slave
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root123456}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
       TZ: Asia/Shanghai
     ports:
       - "3307:3306"
@@ -62,7 +62,7 @@ services:
       - "6379:6379"
     volumes:
       - redis-data:/data
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123456} --maxmemory 512mb --maxmemory-policy allkeys-lru
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env} --maxmemory 512mb --maxmemory-policy allkeys-lru
     networks:
       - iot-prod
 
@@ -81,7 +81,7 @@ services:
       EMQX_NAME: iot-emqx
       EMQX_HOST: emqx
       EMQX_DASHBOARD__DEFAULT_USERNAME: admin
-      EMQX_DASHBOARD__DEFAULT_PASSWORD: ${EMQX_PASSWORD:-emqx123456}
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: ${EMQX_PASSWORD:?set EMQX_PASSWORD in .env}
     volumes:
       - emqx-data:/opt/emqx/data
     networks:
@@ -121,10 +121,10 @@ services:
     environment:
       DOCKER_INFLUXDB_INIT_MODE: setup
       DOCKER_INFLUXDB_INIT_USERNAME: admin
-      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASSWORD:-admin123456}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASSWORD:?set INFLUX_PASSWORD in .env}
       DOCKER_INFLUXDB_INIT_ORG: iot
       DOCKER_INFLUXDB_INIT_BUCKET: device_data
-      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN:-iot-platform-token-very-long-secret-string}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN:?set INFLUX_TOKEN in .env}
     volumes:
       - influxdb-data:/var/lib/influxdb2
     networks:

@@ -152,7 +152,7 @@ iot:
 
 # ===================== JWT 认证配置 =====================
 jwt:
-  secret: ${JWT_SECRET:}
+  secret: ${JWT_SECRET:change-me-jwt-secret-at-least-32-chars}
   expiration: 86400000
 
 # ===================== Knife4j 文档配置 =====================
