@@ -1,0 +1,50 @@
+# Demo profile alias (same as application-dev.yml) for existing demo deployments
+# 本地 / 开发环境配置
+# 敏感项请通过环境变量或 .env 注入，勿将真实密钥提交仓库
+# ============================================================
+spring:
+  datasource:
+    dynamic:
+      primary: master
+      strict: false
+      datasource:
+        master:
+          url: jdbc:mysql://${DB_HOST:localhost}:3306/iot_platform?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
+          username: ${DB_USER:root}
+          password: ${DB_PASSWORD:change-me-db-password}
+          driver-class-name: com.mysql.cj.jdbc.Driver
+        # 单机开发无从库时，读写均指向同一实例
+        slave:
+          url: jdbc:mysql://${DB_HOST:localhost}:3306/iot_platform?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+          username: ${DB_USER:root}
+          password: ${DB_PASSWORD:change-me-db-password}
+          driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:change-me-redis-password}
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+
+mqtt:
+  host: ${MQTT_HOST:tcp://localhost:1883}
+  username: ${MQTT_USER:}
+  password: ${MQTT_PASSWORD:}
+  topic-prefix: iot/device/#
+
+influxdb:
+  url: http://${INFLUX_HOST:localhost}:8086
+  token: ${INFLUX_TOKEN:change-me-influx-token}
+
+jwt:
+  secret: ${JWT_SECRET:change-me-jwt-secret-at-least-32-chars}
+
+logging:
+  level:
+    com.iot.platform: info
+    org.eclipse.paho: warn
