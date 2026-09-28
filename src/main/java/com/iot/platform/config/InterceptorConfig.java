@@ -23,13 +23,15 @@ public class InterceptorConfig implements WebMvcConfigurer {
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(
-                        "/auth/**",
+                        "/auth/login",
+                        "/v1/auth/login",
                         // EMQX HTTP Auth/ACL 回调（无 JWT，供 Broker 直接回调）
                         "/mqtt/**",
                         "/doc.html",
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
                         "/webjars/**",
+                        "/frontend/**",
                         "/favicon.ico",
                         "/error",
                         "/actuator/**"

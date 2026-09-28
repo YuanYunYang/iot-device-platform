@@ -1,6 +1,10 @@
 # 编译输出
 target/
 !.mvn/wrapper/maven-wrapper.jar
+deploy/*.jar
+deploy/app.jar
+*.tgz
+
 !**/src/main/**/target/
 !**/src/test/**/target/
 
