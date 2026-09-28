@@ -1,32 +1,30 @@
-# 演示环境快速说明（服务器路径：/opt/iot-platform）
+# 客户演示环境
 
-## 启动 / 停止
+## 访问
+
+- PC 管理台: http://SERVER_IP/frontend/index.html
+- 移动端: http://SERVER_IP/frontend/mobile.html
+- API 文档: http://SERVER_IP/iot/doc.html
+
+## 登录账号（推荐租户管理员）
+
+| 用户名 | 密码 | 角色 |
+|--------|------|------|
+| tenant_admin | admin123 | 租户管理员（推荐演示） |
+| admin | admin123 | 超级管理员 |
+| operator | admin123 | 运维用户 |
+
+打开页面后使用用户名/密码登录（无需再手动粘贴 JWT）。
+
+## 演示模块
+
+总览看板、设备管理、产品物模型、告警中心、OTA、规则引擎、能源管控、碳排放、负荷调度、用户权限。
+
+## 运维
 
 ```bash
 cd /opt/iot-platform
-docker compose -f docker-compose-demo.yml up -d
 docker compose -f docker-compose-demo.yml ps
 docker compose -f docker-compose-demo.yml logs -f app
+systemctl status iot-platform
 ```
-
-重启后由 systemd 单元 `iot-platform.service` 自动拉起。
-
-## 访问地址
-
-将 `SERVER_IP` 替换为公网 IP：
-
-- PC 管理台: http://SERVER_IP/frontend/index.html
-- 移动端 H5: http://SERVER_IP/frontend/mobile.html
-- API 文档: http://SERVER_IP/iot/doc.html
-- 健康检查: http://SERVER_IP/iot/actuator/health
-
-## 演示账号
-
-- 用户名: `admin`
-- 密码: `admin123`
-
-PC 页右上角点「登录」即可获取 JWT 并加载数据。
-
-## 组件
-
-MySQL / Redis / Mosquitto / InfluxDB / Kafka / App / Nginx（针对约 2G 内存轻量编排）

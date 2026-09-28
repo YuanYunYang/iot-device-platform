@@ -1,687 +1,422 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IoT 设备接入管控平台</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --bg: #0f1117; --card: #1a1d29; --border: #2a2d3a;
-            --text: #e4e6eb; --text-dim: #8b8fa3; --primary: #4f8cf0;
-            --success: #22c55e; --warning: #f59e0b; --danger: #ef4444;
-            --info: #06b6d4; --radius: 12px;
-        }
-        body { font-family: -apple-system, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
-        .layout { display: flex; min-height: 100vh; }
-
-        /* Sidebar */
-        .sidebar { width: 220px; background: var(--card); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-        .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); }
-        .sidebar-header h1 { font-size: 16px; font-weight: 700; color: var(--primary); }
-        .sidebar-header p { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
-        .nav { flex: 1; padding: 12px 0; }
-        .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; cursor: pointer; color: var(--text-dim); font-size: 14px; transition: all .2s; border-left: 3px solid transparent; }
-        .nav-item:hover { background: rgba(79,140,240,.08); color: var(--text); }
-        .nav-item.active { background: rgba(79,140,240,.12); color: var(--primary); border-left-color: var(--primary); }
-        .nav-icon { font-size: 18px; width: 24px; text-align: center; }
-
-        /* Main */
-        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .topbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; background: var(--card); border-bottom: 1px solid var(--border); }
-        .topbar-title { font-size: 16px; font-weight: 600; }
-        .topbar-right { display: flex; align-items: center; gap: 16px; }
-        .ws-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); }
-        .ws-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
-        .ws-dot.connected { background: var(--success); animation: pulse 2s infinite; }
-        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
-        .token-input { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; color: var(--text); font-size: 12px; width: 200px; }
-        .content { flex: 1; overflow-y: auto; padding: 24px; }
-
-        /* Cards */
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
-        .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
-        .stat-card .label { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
-        .stat-card .value { font-size: 32px; font-weight: 700; }
-        .stat-card .sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
-        .stat-card.online .value { color: var(--success); }
-        .stat-card.offline .value { color: var(--text-dim); }
-        .stat-card.alarm .value { color: var(--danger); }
-        .stat-card.total .value { color: var(--primary); }
-
-        /* Panel */
-        .panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 24px; }
-        .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); }
-        .panel-title { font-size: 14px; font-weight: 600; }
-        .panel-body { padding: 20px; }
-
-        /* Grid */
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
-
-        /* Table */
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 10px 12px; font-size: 12px; color: var(--text-dim); font-weight: 500; border-bottom: 1px solid var(--border); }
-        td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid var(--border); }
-        tr:hover td { background: rgba(255,255,255,.02); }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-        .badge-online { background: rgba(34,197,94,.15); color: var(--success); }
-        .badge-offline { background: rgba(139,143,163,.15); color: var(--text-dim); }
-        .badge-critical { background: rgba(239,68,68,.15); color: var(--danger); }
-        .badge-warning { background: rgba(245,158,11,.15); color: var(--warning); }
-        .badge-info { background: rgba(6,182,212,.15); color: var(--info); }
-
-        /* Chart */
-        .chart-container { position: relative; height: 260px; }
-
-        /* Alarm list */
-        .alarm-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
-        .alarm-item:last-child { border-bottom: none; }
-        .alarm-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-        .alarm-icon.critical { background: rgba(239,68,68,.15); }
-        .alarm-icon.warning { background: rgba(245,158,11,.15); }
-        .alarm-icon.info { background: rgba(6,182,212,.15); }
-        .alarm-content { flex: 1; }
-        .alarm-title { font-size: 13px; font-weight: 500; }
-        .alarm-meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
-
-        /* OTA progress */
-        .progress-bar { width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--primary); border-radius: 3px; transition: width .3s; }
-        .progress-text { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
-
-        /* Rule editor */
-        .rule-editor { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: 'Courier New', monospace; font-size: 12px; color: var(--text); min-height: 120px; width: 100%; resize: vertical; }
-        .btn { padding: 6px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 12px; font-weight: 500; transition: all .2s; }
-        .btn-primary { background: var(--primary); color: #fff; }
-        .btn-primary:hover { opacity: .85; }
-        .btn-sm { padding: 4px 10px; font-size: 11px; }
-        .btn-danger { background: rgba(239,68,68,.2); color: var(--danger); }
-        .btn-success { background: rgba(34,197,94,.2); color: var(--success); }
-
-        /* Tabs */
-        .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
-        .tab { padding: 8px 16px; cursor: pointer; font-size: 13px; color: var(--text-dim); border-bottom: 2px solid transparent; }
-        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
-
-        .page { display: none; }
-        .page.active { display: block; }
-
-        .empty { text-align: center; padding: 40px; color: var(--text-dim); font-size: 13px; }
-
-        /* Form */
-        .form-group { margin-bottom: 12px; }
-        .form-label { font-size: 12px; color: var(--text-dim); margin-bottom: 4px; display: block; }
-        .form-input { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; color: var(--text); font-size: 13px; width: 100%; }
-
-        /* Responsive */
-        @media (max-width: 1200px) {
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
-            .grid-2, .grid-3 { grid-template-columns: 1fr; }
-        }
-    </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>IoT 设备接入管控平台</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f1117;--card:#1a1d29;--border:#2a2d3a;--text:#e4e6eb;--dim:#8b8fa3;--primary:#4f8cf0;--ok:#22c55e;--warn:#f59e0b;--danger:#ef4444;--info:#06b6d4;--r:12px}
+body{font-family:-apple-system,"PingFang SC","Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+.layout{display:flex;min-height:100vh}
+.sidebar{width:230px;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.sidebar-header{padding:20px;border-bottom:1px solid var(--border)}
+.sidebar-header h1{font-size:16px;color:var(--primary)}
+.sidebar-header p{font-size:11px;color:var(--dim);margin-top:4px}
+.nav{flex:1;padding:10px 0;overflow-y:auto}
+.nav-group{font-size:10px;color:var(--dim);padding:12px 20px 4px;letter-spacing:.5px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;color:var(--dim);font-size:13px;border-left:3px solid transparent}
+.nav-item:hover{background:rgba(79,140,240,.08);color:var(--text)}
+.nav-item.active{background:rgba(79,140,240,.12);color:var(--primary);border-left-color:var(--primary)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--border)}
+.topbar-title{font-size:16px;font-weight:600}
+.topbar-right{display:flex;align-items:center;gap:14px}
+.ws-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}
+.ws-dot{width:8px;height:8px;border-radius:50%;background:var(--danger)}
+.ws-dot.on{background:var(--ok)}
+.user-chip{font-size:12px;color:var(--dim)}
+.user-chip b{color:var(--text)}
+.content{flex:1;overflow-y:auto;padding:24px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px}
+.stat .l{font-size:12px;color:var(--dim)}
+.stat .v{font-size:28px;font-weight:700;margin-top:6px}
+.stat .s{font-size:11px;color:var(--dim);margin-top:4px}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--r);margin-bottom:20px}
+.panel-h{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border)}
+.panel-t{font-size:14px;font-weight:600}
+.panel-b{padding:16px 18px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:9px 10px;font-size:11px;color:var(--dim);border-bottom:1px solid var(--border);font-weight:500}
+td{padding:9px 10px;font-size:13px;border-bottom:1px solid var(--border)}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+.b-on{background:rgba(34,197,94,.15);color:var(--ok)}
+.b-off{background:rgba(139,143,163,.15);color:var(--dim)}
+.b-unk{background:rgba(245,158,11,.15);color:var(--warn)}
+.b-c{background:rgba(239,68,68,.15);color:var(--danger)}
+.b-w{background:rgba(245,158,11,.15);color:var(--warn)}
+.b-i{background:rgba(6,182,212,.15);color:var(--info)}
+.b-ok{background:rgba(34,197,94,.15);color:var(--ok)}
+.btn{padding:6px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:500}
+.btn-p{background:var(--primary);color:#fff}
+.btn-g{background:rgba(34,197,94,.2);color:var(--ok)}
+.btn-d{background:rgba(239,68,68,.2);color:var(--danger)}
+.btn-s{padding:4px 10px;font-size:11px}
+.page{display:none}.page.active{display:block}
+.empty{text-align:center;padding:36px;color:var(--dim);font-size:13px}
+.chart{height:240px;position:relative}
+.alarm{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);align-items:center}
+.alarm:last-child{border-bottom:none}
+.a-ico{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px}
+.a-ico.c{background:rgba(239,68,68,.15)}.a-ico.w{background:rgba(245,158,11,.15)}.a-ico.i{background:rgba(6,182,212,.15)}
+.a-t{font-size:13px;font-weight:500}.a-m{font-size:11px;color:var(--dim);margin-top:2px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:14px}
+.tab{padding:8px 14px;cursor:pointer;font-size:13px;color:var(--dim);border-bottom:2px solid transparent}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.fg{margin-bottom:10px}.fl{font-size:12px;color:var(--dim);margin-bottom:4px;display:block}
+.fi{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-size:13px}
+.progress{height:6px;background:var(--border);border-radius:3px;overflow:hidden}.progress>i{display:block;height:100%;background:var(--primary)}
+/* Login */
+#loginMask{position:fixed;inset:0;background:radial-gradient(ellipse at 30% 20%,#1a2744,#0f1117 60%);display:flex;align-items:center;justify-content:center;z-index:1000}
+.login-card{width:400px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:36px 32px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.login-card h2{font-size:22px;margin-bottom:6px}
+.login-card .sub{font-size:13px;color:var(--dim);margin-bottom:24px}
+.login-card .btn{width:100%;padding:11px;font-size:14px;margin-top:8px}
+.login-hint{margin-top:16px;font-size:12px;color:var(--dim);line-height:1.6;background:rgba(79,140,240,.08);padding:10px 12px;border-radius:8px}
+.err{color:var(--danger);font-size:12px;margin-top:8px;min-height:16px}
+@media(max-width:1100px){.stats{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-<div class="layout">
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <h1>IoT 管控平台</h1>
-            <p>SaaS Device Platform</p>
-        </div>
-        <div class="nav">
-            <div class="nav-item active" onclick="showPage('dashboard', this)"><span class="nav-icon">&#9632;</span> 总览看板</div>
-            <div class="nav-item" onclick="showPage('devices', this)"><span class="nav-icon">&#9641;</span> 设备管理</div>
-            <div class="nav-item" onclick="showPage('alarms', this)"><span class="nav-icon">&#9888;</span> 告警中心</div>
-            <div class="nav-item" onclick="showPage('ota', this)"><span class="nav-icon">&#8593;</span> OTA 升级</div>
-            <div class="nav-item" onclick="showPage('rules', this)"><span class="nav-icon">&#9881;</span> 规则引擎</div>
-        </div>
+<div id="loginMask">
+  <div class="login-card">
+    <h2>IoT 设备接入管控平台</h2>
+    <div class="sub">客户演示环境 · 请登录后查看完整功能</div>
+    <div class="fg"><label class="fl">用户名</label><input class="fi" id="loginUser" value="tenant_admin" autocomplete="username"/></div>
+    <div class="fg"><label class="fl">密码</label><input class="fi" id="loginPass" type="password" value="admin123" autocomplete="current-password"/></div>
+    <div class="err" id="loginErr"></div>
+    <button class="btn btn-p" onclick="doLogin()">登 录</button>
+    <div class="login-hint">演示账号：<br/>· 租户管理员 <b>tenant_admin / admin123</b>（推荐）<br/>· 超级管理员 <b>admin / admin123</b><br/>· 运维 <b>operator / admin123</b></div>
+  </div>
+</div>
+
+<div class="layout" id="appLayout" style="display:none">
+  <div class="sidebar">
+    <div class="sidebar-header"><h1>IoT 管控平台</h1><p>SaaS Device Platform</p></div>
+    <div class="nav">
+      <div class="nav-group">监控</div>
+      <div class="nav-item active" data-page="dashboard" onclick="nav(this)">总览看板</div>
+      <div class="nav-item" data-page="devices" onclick="nav(this)">设备管理</div>
+      <div class="nav-item" data-page="alarms" onclick="nav(this)">告警中心</div>
+      <div class="nav-group">接入</div>
+      <div class="nav-item" data-page="products" onclick="nav(this)">产品物模型</div>
+      <div class="nav-item" data-page="ota" onclick="nav(this)">OTA 升级</div>
+      <div class="nav-item" data-page="rules" onclick="nav(this)">规则引擎</div>
+      <div class="nav-group">能源与碳</div>
+      <div class="nav-item" data-page="energy" onclick="nav(this)">能源管控</div>
+      <div class="nav-item" data-page="carbon" onclick="nav(this)">碳排放</div>
+      <div class="nav-item" data-page="dispatch" onclick="nav(this)">负荷调度</div>
+      <div class="nav-group">系统</div>
+      <div class="nav-item" data-page="users" onclick="nav(this)">用户权限</div>
     </div>
-
-    <!-- Main -->
-    <div class="main">
-        <div class="topbar">
-            <div class="topbar-title" id="pageTitle">总览看板</div>
-            <div class="topbar-right">
-                <div class="ws-status">
-                    <span class="ws-dot" id="wsDot"></span>
-                    <span id="wsText">未连接</span>
-                </div>
-                <input class="token-input" id="tokenInput" placeholder="JWT Token 或点登录" />
-                <button class="btn btn-success btn-sm" onclick="loginDemo()">登录</button>
-                <button class="btn btn-primary btn-sm" onclick="connectWs()">连接</button>
-            </div>
-        </div>
-        <div class="content">
-            <!-- Dashboard Page -->
-            <div class="page active" id="page-dashboard">
-                <div class="stats-grid">
-                    <div class="stat-card total">
-                        <div class="label">设备总数</div>
-                        <div class="value" id="statTotal">0</div>
-                        <div class="sub">所有注册设备</div>
-                    </div>
-                    <div class="stat-card online">
-                        <div class="label">在线设备</div>
-                        <div class="value" id="statOnline">0</div>
-                        <div class="sub" id="statOnlineRate">在线率 0%</div>
-                    </div>
-                    <div class="stat-card offline">
-                        <div class="label">离线设备</div>
-                        <div class="value" id="statOffline">0</div>
-                        <div class="sub">超过90秒无心跳</div>
-                    </div>
-                    <div class="stat-card alarm">
-                        <div class="label">活跃告警</div>
-                        <div class="value" id="statAlarm">0</div>
-                        <div class="sub" id="statAlarmToday">今日 0 条</div>
-                    </div>
-                </div>
-                <div class="grid-2">
-                    <div class="panel">
-                        <div class="panel-header"><span class="panel-title">实时设备数据趋势</span></div>
-                        <div class="panel-body">
-                            <div class="chart-container"><canvas id="realtimeChart"></canvas></div>
-                        </div>
-                    </div>
-                    <div class="panel">
-                        <div class="panel-header"><span class="panel-title">设备状态分布</span></div>
-                        <div class="panel-body">
-                            <div class="chart-container"><canvas id="statusChart"></canvas></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="panel">
-                    <div class="panel-header">
-                        <span class="panel-title">最近告警</span>
-                        <button class="btn btn-sm btn-primary" onclick="showPage('alarms', document.querySelectorAll('.nav-item')[2])">查看全部</button>
-                    </div>
-                    <div class="panel-body" id="recentAlarms">
-                        <div class="empty">暂无告警记录</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Devices Page -->
-            <div class="page" id="page-devices">
-                <div class="panel">
-                    <div class="panel-header">
-                        <span class="panel-title">设备列表</span>
-                        <button class="btn btn-sm btn-primary" onclick="loadDevices()">刷新</button>
-                    </div>
-                    <div class="panel-body" style="padding:0">
-                        <table>
-                            <thead>
-                                <tr><th>设备ID</th><th>设备名称</th><th>产品</th><th>状态</th><th>固件版本</th><th>最后上线</th><th>操作</th></tr>
-                            </thead>
-                            <tbody id="deviceTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Alarms Page -->
-            <div class="page" id="page-alarms">
-                <div class="panel">
-                    <div class="panel-header">
-                        <span class="panel-title">告警列表</span>
-                        <button class="btn btn-sm btn-primary" onclick="loadAlarms()">刷新</button>
-                    </div>
-                    <div class="panel-body" id="alarmList">
-                        <div class="empty">暂无告警</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- OTA Page -->
-            <div class="page" id="page-ota">
-                <div class="tabs">
-                    <div class="tab active" onclick="switchTab('ota-firmware', this)">固件管理</div>
-                    <div class="tab" onclick="switchTab('ota-tasks', this)">升级任务</div>
-                </div>
-                <div id="ota-firmware">
-                    <div class="panel">
-                        <div class="panel-header">
-                            <span class="panel-title">固件包列表</span>
-                            <button class="btn btn-sm btn-primary" onclick="loadFirmwares()">刷新</button>
-                        </div>
-                        <div class="panel-body" style="padding:0">
-                            <table>
-                                <thead><tr><th>版本</th><th>产品</th><th>大小</th><th>状态</th><th>创建时间</th></tr></thead>
-                                <tbody id="firmwareTableBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                <div id="ota-tasks" style="display:none">
-                    <div class="panel">
-                        <div class="panel-header">
-                            <span class="panel-title">升级任务</span>
-                            <button class="btn btn-sm btn-primary" onclick="loadOtaTasks()">刷新</button>
-                        </div>
-                        <div class="panel-body" style="padding:0">
-                            <table>
-                                <thead><tr><th>任务名称</th><th>目标</th><th>状态</th><th>进度</th><th>成功/失败</th><th>操作</th></tr></thead>
-                                <tbody id="otaTaskTableBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Rules Page -->
-            <div class="page" id="page-rules">
-                <div class="panel">
-                    <div class="panel-header">
-                        <span class="panel-title">告警规则管理</span>
-                        <div>
-                            <button class="btn btn-sm btn-success" onclick="reloadRules()">重载规则</button>
-                            <button class="btn btn-sm btn-primary" onclick="showRuleEditor()">新增规则</button>
-                        </div>
-                    </div>
-                    <div class="panel-body" style="padding:0">
-                        <table>
-                            <thead><tr><th>规则名称</th><th>类型</th><th>状态</th><th>描述</th><th>操作</th></tr></thead>
-                            <tbody id="ruleTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="panel" id="ruleEditorPanel" style="display:none">
-                    <div class="panel-header"><span class="panel-title" id="ruleEditorTitle">新增规则</span></div>
-                    <div class="panel-body">
-                        <div class="grid-2">
-                            <div class="form-group">
-                                <label class="form-label">规则名称</label>
-                                <input class="form-input" id="ruleName" placeholder="如：温度超阈值告警" />
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">规则类型</label>
-                                <select class="form-input" id="ruleType">
-                                    <option value="THRESHOLD">阈值告警</option>
-                                    <option value="COMPOSITE">复合告警</option>
-                                    <option value="TIME_WINDOW">时间窗口</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">DRL 规则内容</label>
-                            <textarea class="rule-editor" id="ruleDrl" placeholder="package com.iot.platform.rules;&#10;rule 'Temperature Critical'&#10;when&#10;    DevicePropertyFact(properties['temperature'] > 40)&#10;then&#10;    fact.addResult(new AlarmResult(...));&#10;end"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">描述</label>
-                            <input class="form-input" id="ruleDesc" placeholder="规则描述" />
-                        </div>
-                        <button class="btn btn-primary" onclick="saveRule()">保存规则</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="pageTitle">总览看板</div>
+      <div class="topbar-right">
+        <div class="ws-status"><span class="ws-dot" id="wsDot"></span><span id="wsText">实时通道</span></div>
+        <div class="user-chip">当前用户：<b id="userName">-</b> · <span id="userRole">-</span></div>
+        <button class="btn btn-s btn-d" onclick="doLogout()">退出</button>
+      </div>
     </div>
+    <div class="content">
+      <div class="page active" id="page-dashboard">
+        <div class="stats">
+          <div class="stat"><div class="l">设备总数</div><div class="v" id="sTotal">0</div><div class="s">已注册设备</div></div>
+          <div class="stat"><div class="l">在线设备</div><div class="v" id="sOnline" style="color:var(--ok)">0</div><div class="s" id="sOnlineRate">在线率 0%</div></div>
+          <div class="stat"><div class="l">离线设备</div><div class="v" id="sOffline" style="color:var(--dim)">0</div><div class="s">心跳超时</div></div>
+          <div class="stat"><div class="l">活跃告警</div><div class="v" id="sAlarm" style="color:var(--danger)">0</div><div class="s" id="sAlarmSub">今日新增</div></div>
+        </div>
+        <div class="grid2">
+          <div class="panel"><div class="panel-h"><span class="panel-t">近7日总用电趋势 (kWh)</span></div><div class="panel-b"><div class="chart"><canvas id="energyChart"></canvas></div></div></div>
+          <div class="panel"><div class="panel-h"><span class="panel-t">设备状态分布</span></div><div class="panel-b"><div class="chart"><canvas id="statusChart"></canvas></div></div></div>
+        </div>
+        <div class="panel"><div class="panel-h"><span class="panel-t">最近告警</span><button class="btn btn-s btn-p" onclick="document.querySelector('[data-page=alarms]').click()">查看全部</button></div><div class="panel-b" id="recentAlarms"><div class="empty">加载中...</div></div></div>
+      </div>
+
+      <div class="page" id="page-devices">
+        <div class="panel"><div class="panel-h"><span class="panel-t">设备列表</span><button class="btn btn-s btn-p" onclick="loadDevices()">刷新</button></div>
+        <div class="panel-b" style="padding:0"><table><thead><tr><th>设备ID</th><th>名称</th><th>产品</th><th>状态</th><th>固件</th><th>位置</th><th>最后心跳</th></tr></thead><tbody id="tbDevices"></tbody></table></div></div>
+      </div>
+
+      <div class="page" id="page-products">
+        <div class="panel"><div class="panel-h"><span class="panel-t">产品列表</span><button class="btn btn-s btn-p" onclick="loadProducts()">刷新</button></div>
+        <div class="panel-b" style="padding:0"><table><thead><tr><th>ProductKey</th><th>名称</th><th>类型</th><th>联网</th><th>描述</th><th>物模型</th></tr></thead><tbody id="tbProducts"></tbody></table></div></div>
+        <div class="panel" id="thingPanel" style="display:none"><div class="panel-h"><span class="panel-t" id="thingTitle">物模型</span></div>
+        <div class="panel-b" style="padding:0"><table><thead><tr><th>标识</th><th>名称</th><th>类型</th><th>数据类型</th><th>单位</th><th>告警等级</th></tr></thead><tbody id="tbThings"></tbody></table></div></div>
+      </div>
+
+      <div class="page" id="page-alarms">
+        <div class="panel"><div class="panel-h"><span class="panel-t">告警列表</span><button class="btn btn-s btn-p" onclick="loadAlarms()">刷新</button></div><div class="panel-b" id="alarmList"></div></div>
+      </div>
+
+      <div class="page" id="page-ota">
+        <div class="tabs"><div class="tab active" onclick="otaTab('fw',this)">固件包</div><div class="tab" onclick="otaTab('task',this)">升级任务</div></div>
+        <div id="ota-fw"><div class="panel"><div class="panel-h"><span class="panel-t">固件包</span><button class="btn btn-s btn-p" onclick="loadFirmwares()">刷新</button></div>
+        <div class="panel-b" style="padding:0"><table><thead><tr><th>版本</th><th>产品ID</th><th>大小</th><th>状态</th><th>描述</th></tr></thead><tbody id="tbFw"></tbody></table></div></div></div>
+        <div id="ota-task" style="display:none"><div class="panel"><div class="panel-h"><span class="panel-t">升级任务</span><button class="btn btn-s btn-p" onclick="loadOtaTasks()">刷新</button></div>
+        <div class="panel-b" style="padding:0"><table><thead><tr><th>任务</th><th>目标</th><th>状态</th><th>进度</th><th>成功/失败</th></tr></thead><tbody id="tbOta"></tbody></table></div></div></div>
+      </div>
+
+      <div class="page" id="page-rules">
+        <div class="panel"><div class="panel-h"><span class="panel-t">告警规则</span><div><button class="btn btn-s btn-g" onclick="reloadRules()">重载引擎</button> <button class="btn btn-s btn-p" onclick="loadRules()">刷新</button></div></div>
+        <div class="panel-b" style="padding:0"><table><thead><tr><th>规则名称</th><th>类型</th><th>状态</th><th>描述</th><th>操作</th></tr></thead><tbody id="tbRules"></tbody></table></div></div>
+      </div>
+
+      <div class="page" id="page-energy">
+        <div class="stats">
+          <div class="stat"><div class="l">电表数量</div><div class="v" id="eMeters">0</div><div class="s">含气表/水表</div></div>
+          <div class="stat"><div class="l">今日总用电</div><div class="v" id="eToday" style="color:var(--primary)">-</div><div class="s">kWh</div></div>
+          <div class="stat"><div class="l">峰段占比</div><div class="v" id="ePeak">-</div><div class="s">尖峰用电</div></div>
+          <div class="stat"><div class="l">预估电费</div><div class="v" id="eCost" style="color:var(--warn)">-</div><div class="s">元（今日）</div></div>
+        </div>
+        <div class="panel"><div class="panel-h"><span class="panel-t">能源表</span><button class="btn btn-s btn-p" onclick="loadEnergy()">刷新</button></div>
+        <div class="panel-b" style="padding:0"><table><thead><tr><th>编号</th><th>名称</th><th>类型</th><th>协议</th><th>位置</th><th>最新功率</th><th>累计电量</th></tr></thead><tbody id="tbMeters"></tbody></table></div></div>
+        <div class="panel"><div class="panel-h"><span class="panel-t">近7日能耗报表</span></div>
+        <div class="panel-b" style="padding:0"><table><thead><tr><th>日期</th><th>表号</th><th>总能耗</th><th>峰</th><th>平</th><th>谷</th><th>电费</th></tr></thead><tbody id="tbReports"></tbody></table></div></div>
+      </div>
+
+      <div class="page" id="page-carbon">
+        <div class="stats">
+          <div class="stat"><div class="l">近14日排放</div><div class="v" id="cTotal" style="color:var(--ok)">-</div><div class="s">kgCO₂</div></div>
+          <div class="stat"><div class="l">Scope 2</div><div class="v" id="cS2">-</div><div class="s">外购电力</div></div>
+          <div class="stat"><div class="l">Scope 1</div><div class="v" id="cS1">-</div><div class="s">直接排放</div></div>
+          <div class="stat"><div class="l">排放因子</div><div class="v" id="cFactors">-</div><div class="s">已配置</div></div>
+        </div>
+        <div class="panel"><div class="panel-h"><span class="panel-t">排放记录</span><button class="btn btn-s btn-p" onclick="loadCarbon()">刷新</button></div>
+        <div class="panel-b" style="padding:0"><table><thead><tr><th>日期</th><th>范围</th><th>来源</th><th>消耗量</th><th>因子</th><th>CO₂(kg)</th></tr></thead><tbody id="tbCarbon"></tbody></table></div></div>
+      </div>
+
+      <div class="page" id="page-dispatch">
+        <div class="panel"><div class="panel-h"><span class="panel-t">负荷调度策略</span><button class="btn btn-s btn-p" onclick="loadDispatch()">刷新</button></div>
+        <div class="panel-b" style="padding:0"><table><thead><tr><th>策略名称</th><th>类型</th><th>目标设备</th><th>动作</th><th>优先级</th><th>状态</th><th>上次执行</th></tr></thead><tbody id="tbDispatch"></tbody></table></div></div>
+      </div>
+
+      <div class="page" id="page-users">
+        <div class="panel"><div class="panel-h"><span class="panel-t">用户列表</span><button class="btn btn-s btn-p" onclick="loadUsers()">刷新</button></div>
+        <div class="panel-b" style="padding:0"><table><thead><tr><th>用户名</th><th>角色</th><th>租户</th><th>状态</th></tr></thead><tbody id="tbUsers"></tbody></table></div></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-const API_BASE = '/iot/v1';
-let token = '';
-let ws = null;
-let realtimeChart = null;
-let statusChart = null;
-let realtimeData = { labels: [], datasets: {} };
+const API='/iot/v1';
+let token='', userInfo=null, statusChart=null, energyChart=null;
 
-// Page navigation
-function showPage(name, el) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById('page-' + name).classList.add('active');
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    el.classList.add('active');
-    document.getElementById('pageTitle').textContent = el.textContent.trim();
-    if (name === 'dashboard') loadDashboard();
-    if (name === 'devices') loadDevices();
-    if (name === 'alarms') loadAlarms();
-    if (name === 'ota') { loadFirmwares(); loadOtaTasks(); }
-    if (name === 'rules') loadRules();
+function $(id){return document.getElementById(id)}
+function badgeStatus(s){const m={ONLINE:'b-on',OFFLINE:'b-off',UNKNOWN:'b-unk'};return `<span class="badge ${m[s]||'b-unk'}">${s||'-'}</span>`}
+function badgeLevel(l){const m={CRITICAL:'b-c',WARNING:'b-w',INFO:'b-i'};return `<span class="badge ${m[l]||'b-i'}">${l||'-'}</span>`}
+function fmt(t){if(!t)return '-'; return String(t).replace('T',' ').substring(0,19)}
+function roleLabel(r){return ({SUPER_ADMIN:'超级管理员',SYSTEM_ADMIN:'系统管理员',USER:'普通用户'})[r]||r}
+
+async function api(method, path, body){
+  const opts={method,headers:{'Content-Type':'application/json'}};
+  if(token) opts.headers.Authorization='Bearer '+token;
+  if(body!==undefined) opts.body=JSON.stringify(body);
+  const res=await fetch(API+path, opts);
+  if(res.status===401){ doLogout(); throw new Error('登录已过期'); }
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.message||('HTTP '+res.status));
+  return data;
+}
+function arr(res){ const d=res&&res.data; if(Array.isArray(d)) return d; if(d&&Array.isArray(d.records)) return d.records; return []; }
+
+async function doLogin(){
+  $('loginErr').textContent='';
+  try{
+    const res=await fetch(API+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('loginUser').value.trim(),password:$('loginPass').value})});
+    const data=await res.json();
+    if(!data.success && data.code!==200000) throw new Error(data.message||'登录失败');
+    const vo=data.data||{};
+    token=vo.token; if(!token) throw new Error('未返回 Token');
+    userInfo=vo;
+    localStorage.setItem('iot_token', token);
+    localStorage.setItem('iot_user', JSON.stringify(vo));
+    enterApp();
+  }catch(e){ $('loginErr').textContent=e.message||String(e); }
+}
+function doLogout(){
+  token=''; userInfo=null;
+  localStorage.removeItem('iot_token'); localStorage.removeItem('iot_user');
+  $('appLayout').style.display='none'; $('loginMask').style.display='flex';
+}
+function enterApp(){
+  $('loginMask').style.display='none'; $('appLayout').style.display='flex';
+  $('userName').textContent=userInfo.username||'-';
+  $('userRole').textContent=roleLabel(userInfo.role);
+  connectWs();
+  loadDashboard();
+}
+document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+
+function nav(el){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  el.classList.add('active');
+  const page=el.dataset.page;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  $('page-'+page).classList.add('active');
+  $('pageTitle').textContent=el.textContent.trim();
+  const loaders={dashboard:loadDashboard,devices:loadDevices,products:loadProducts,alarms:loadAlarms,ota:()=>{loadFirmwares();loadOtaTasks()},rules:loadRules,energy:loadEnergy,carbon:loadCarbon,dispatch:loadDispatch,users:loadUsers};
+  (loaders[page]||(()=>{}))();
 }
 
-function switchTab(tabId, el) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-    document.getElementById('ota-firmware').style.display = tabId === 'ota-firmware' ? '' : 'none';
-    document.getElementById('ota-tasks').style.display = tabId === 'ota-tasks' ? '' : 'none';
+function connectWs(){
+  try{
+    const proto=location.protocol==='https:'?'wss':'ws';
+    const ws=new WebSocket(proto+'://'+location.host+'/iot/ws/device');
+    ws.onopen=()=>{ $('wsDot').classList.add('on'); $('wsText').textContent='实时已连接'; };
+    ws.onclose=()=>{ $('wsDot').classList.remove('on'); $('wsText').textContent='实时已断开'; };
+    ws.onerror=()=>{ $('wsText').textContent='实时异常'; };
+  }catch(e){ $('wsText').textContent='实时不可用'; }
 }
 
-// API helper
-async function api(method, path, body) {
-    const opts = { method, headers: { 'Content-Type': 'application/json' } };
-    if (token) opts.headers['Authorization'] = 'Bearer ' + token;
-    if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(API_BASE + path, opts);
-    if (!res.ok) throw new Error(`API ${path} failed: ${res.status}`);
-    return res.json();
+async function loadDashboard(){
+  try{
+    const [devRes, alarmRes, reportRes]=await Promise.all([
+      api('GET','/device/list?page=1&size=1000'),
+      api('GET','/alarm/recent?limit=20'),
+      api('GET','/energy/report/list?reportType=DAILY&page=1&size=50').catch(()=>({data:[]}))
+    ]);
+    const devices=arr(devRes), alarms=arr(alarmRes), reports=arr(reportRes);
+    const online=devices.filter(d=>d.status==='ONLINE').length;
+    const offline=devices.filter(d=>d.status==='OFFLINE').length;
+    const active=alarms.filter(a=>a.status==='ACTIVE').length;
+    $('sTotal').textContent=devices.length;
+    $('sOnline').textContent=online;
+    $('sOffline').textContent=offline;
+    $('sAlarm').textContent=active;
+    $('sOnlineRate').textContent='在线率 '+(devices.length?Math.round(online/devices.length*100):0)+'%';
+    $('sAlarmSub').textContent='共 '+alarms.length+' 条最近告警';
+    renderAlarms('recentAlarms', alarms.slice(0,8));
+    renderStatusChart(online, offline, devices.length-online-offline);
+    renderEnergyChart(reports);
+  }catch(e){ console.error(e); }
 }
 
-// WebSocket
-function connectWs() {
-    token = document.getElementById('tokenInput').value.trim();
-    if (!token) { alert('请输入 JWT Token'); return; }
-    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    ws = new WebSocket(`${proto}://${location.host}/iot/ws/device`);
-    ws.onopen = () => {
-        document.getElementById('wsDot').classList.add('connected');
-        document.getElementById('wsText').textContent = '已连接';
-        loadDashboard();
-    };
-    ws.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        handleWsMessage(msg);
-    };
-    ws.onclose = () => {
-        document.getElementById('wsDot').classList.remove('connected');
-        document.getElementById('wsText').textContent = '已断开';
-    };
-    ws.onerror = () => { document.getElementById('wsText').textContent = '连接错误'; };
+function renderAlarms(id, list){
+  const el=$(id);
+  if(!list.length){ el.innerHTML='<div class="empty">暂无告警</div>'; return; }
+  el.innerHTML=list.map(a=>{
+    const lv=(a.alarmLevel||'INFO').toLowerCase();
+    const cls=lv.startsWith('c')?'c':(lv.startsWith('w')?'w':'i');
+    return `<div class="alarm"><div class="a-ico ${cls}">!</div><div style="flex:1"><div class="a-t">${a.alarmTitle||'告警'} ${badgeLevel(a.alarmLevel)}</div><div class="a-m">${a.deviceId||'-'} · ${fmt(a.alarmTime)} · ${a.status||''}</div></div></div>`;
+  }).join('');
 }
 
-function handleWsMessage(msg) {
-    if (msg.type === 'property') {
-        updateRealtimeChart(msg.deviceId, msg.data?.properties || {});
-    } else if (msg.type === 'alarm') {
-        loadDashboard();
-    } else if (msg.type === 'status') {
-        loadDashboard();
-    }
+function renderStatusChart(on, off, unk){
+  const ctx=$('statusChart').getContext('2d');
+  if(statusChart) statusChart.destroy();
+  statusChart=new Chart(ctx,{type:'doughnut',data:{labels:['在线','离线','未知'],datasets:[{data:[on,off,unk],backgroundColor:['#22c55e','#8b8fa3','#f59e0b']}]},options:{plugins:{legend:{labels:{color:'#8b8fa3'}}},maintainAspectRatio:false}});
+}
+function renderEnergyChart(reports){
+  // aggregate by date for EM_001 primarily, else all
+  const map={};
+  reports.forEach(r=>{
+    const d=r.reportDate; if(!d) return;
+    map[d]=(map[d]||0)+Number(r.totalEnergy||0);
+  });
+  const labels=Object.keys(map).sort();
+  const values=labels.map(k=>Math.round(map[k]*10)/10);
+  const ctx=$('energyChart').getContext('2d');
+  if(energyChart) energyChart.destroy();
+  energyChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'总用电 kWh',data:values,backgroundColor:'rgba(79,140,240,.55)'}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b8fa3'}},y:{ticks:{color:'#8b8fa3'},grid:{color:'#2a2d3a'}}},maintainAspectRatio:false}});
 }
 
-// Dashboard
-async function loadDashboard() {
-    try {
-        const [devices, alarms] = await Promise.all([
-            api('GET', '/device/list?page=1&size=1000'),
-            api('GET', '/alarm/recent?limit=10')
-        ]);
-        const deviceList = devices.data?.records || devices.data || [];
-        const alarmList = alarms.data || [];
-        const total = deviceList.length;
-        const online = deviceList.filter(d => d.status === 'ONLINE').length;
-        const offline = total - online;
-        const activeAlarms = alarmList.filter(a => a.status === 'ACTIVE').length;
+async function loadDevices(){
+  const list=arr(await api('GET','/device/list?page=1&size=200'));
+  $('tbDevices').innerHTML=list.map(d=>`<tr><td>${d.deviceId}</td><td>${d.deviceName||'-'}</td><td>${d.productName||d.productKey||'-'}</td><td>${badgeStatus(d.status)}</td><td>${d.firmwareVersion||'-'}</td><td>${d.location||'-'}</td><td>${fmt(d.lastHeartbeatTime||d.lastOnlineTime)}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">暂无设备</td></tr>';
+}
+async function loadProducts(){
+  const list=arr(await api('GET','/product/list'));
+  $('tbProducts').innerHTML=list.map(p=>`<tr><td>${p.productKey}</td><td>${p.productName}</td><td>${p.productType||'-'}</td><td>${p.netType||'-'}</td><td>${p.description||'-'}</td><td><button class="btn btn-s btn-p" onclick="showThings(${p.id},'${p.productName}')">查看</button></td></tr>`).join('')||'<tr><td colspan="6" class="empty">暂无产品</td></tr>';
+}
+async function showThings(id,name){
+  const list=arr(await api('GET','/product/'+id+'/thing-model'));
+  $('thingPanel').style.display=''; $('thingTitle').textContent='物模型 · '+name;
+  $('tbThings').innerHTML=list.map(t=>`<tr><td>${t.identifier}</td><td>${t.name}</td><td>${t.type}</td><td>${t.dataType||'-'}</td><td>${t.unit||'-'}</td><td>${t.alarmLevel||'-'}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">无物模型</td></tr>';
+}
+async function loadAlarms(){ renderAlarms('alarmList', arr(await api('GET','/alarm/recent?limit=50'))); }
+function otaTab(which,el){ document.querySelectorAll('#page-ota .tab').forEach(t=>t.classList.remove('active')); el.classList.add('active'); $('ota-fw').style.display=which==='fw'?'':'none'; $('ota-task').style.display=which==='task'?'':'none'; }
+async function loadFirmwares(){
+  const list=arr(await api('GET','/ota/firmware/list?page=1&size=50'));
+  $('tbFw').innerHTML=list.map(f=>`<tr><td>${f.version}</td><td>${f.productId||'-'}</td><td>${f.fileSize?Math.round(f.fileSize/1024)+' KB':'-'}</td><td><span class="badge ${f.status==='PUBLISHED'?'b-ok':'b-unk'}">${f.status}</span></td><td>${f.description||'-'}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">暂无固件</td></tr>';
+}
+async function loadOtaTasks(){
+  const list=arr(await api('GET','/ota/task/list?page=1&size=50'));
+  $('tbOta').innerHTML=list.map(t=>{
+    const total=t.totalCount||0, ok=t.successCount||0, fail=t.failCount||0;
+    const pct=total?Math.round((ok+fail)/total*100):0;
+    return `<tr><td>${t.taskName}</td><td>${t.targetType||'-'} ${t.targetProductKey||''}</td><td>${t.status}</td><td><div class="progress"><i style="width:${pct}%"></i></div><div style="font-size:11px;color:var(--dim);margin-top:4px">${pct}%</div></td><td>${ok}/${fail}</td></tr>`;
+  }).join('')||'<tr><td colspan="5" class="empty">暂无任务</td></tr>';
+}
+async function loadRules(){
+  const list=arr(await api('GET','/rule/list'));
+  $('tbRules').innerHTML=list.map(r=>`<tr><td>${r.ruleName}</td><td>${r.ruleType}</td><td>${r.enabled?badgeStatus('ONLINE').replace('ONLINE','启用'):badgeStatus('OFFLINE').replace('OFFLINE','禁用')}</td><td>${r.description||'-'}</td><td><button class="btn btn-s ${r.enabled?'btn-d':'btn-g'}" onclick="toggleRule(${r.id},${r.enabled?0:1})">${r.enabled?'禁用':'启用'}</button></td></tr>`).join('')||'<tr><td colspan="5" class="empty">暂无规则</td></tr>';
+}
+async function toggleRule(id, enable){ await api('POST',`/rule/${id}/${enable?'enable':'disable'}`); loadRules(); }
+async function reloadRules(){ await api('POST','/rule/reload'); alert('规则引擎已重载'); }
 
-        document.getElementById('statTotal').textContent = total;
-        document.getElementById('statOnline').textContent = online;
-        document.getElementById('statOffline').textContent = offline;
-        document.getElementById('statAlarm').textContent = activeAlarms;
-        document.getElementById('statOnlineRate').textContent = `在线率 ${total > 0 ? Math.round(online/total*100) : 0}%`;
-
-        renderRecentAlarms(alarmList.slice(0, 5));
-        renderStatusChart(online, offline);
-        initRealtimeChart();
-    } catch (e) { console.error('Dashboard load error:', e); }
+async function loadEnergy(){
+  const meters=arr(await api('GET','/energy/meter/list?page=1&size=50'));
+  $('eMeters').textContent=meters.length;
+  const rows=[];
+  let todayKwh=0, peak=0, cost=0;
+  for(const m of meters){
+    let latest=null;
+    try{ latest=(await api('GET',`/energy/meter/${encodeURIComponent(m.meterCode)}/latest`)).data; }catch(_){}
+    rows.push(`<tr><td>${m.meterCode}</td><td>${m.meterName||'-'}</td><td>${m.meterType}</td><td>${m.protocol||'-'}</td><td>${m.location||'-'}</td><td>${latest&&latest.activePower!=null?latest.activePower+' kW':'-'}</td><td>${latest&&latest.cumulativeEnergy!=null?latest.cumulativeEnergy:'-'}</td></tr>`);
+  }
+  $('tbMeters').innerHTML=rows.join('')||'<tr><td colspan="7" class="empty">暂无能源表</td></tr>';
+  const reports=arr(await api('GET','/energy/report/list?reportType=DAILY&page=1&size=50').catch(()=>({data:[]})));
+  const today=new Date().toISOString().slice(0,10);
+  reports.filter(r=>r.reportDate===today).forEach(r=>{ todayKwh+=Number(r.totalEnergy||0); peak+=Number(r.peakEnergy||0); cost+=Number(r.cost||0); });
+  // if no today, use latest date aggregate
+  if(!todayKwh && reports.length){
+    const latestDate=reports.map(r=>r.reportDate).sort().pop();
+    reports.filter(r=>r.reportDate===latestDate).forEach(r=>{ todayKwh+=Number(r.totalEnergy||0); peak+=Number(r.peakEnergy||0); cost+=Number(r.cost||0); });
+    $('eToday').parentElement.querySelector('.s').textContent='kWh（'+latestDate+'）';
+  }
+  $('eToday').textContent=todayKwh?todayKwh.toFixed(1):'-';
+  $('ePeak').textContent=todayKwh?Math.round(peak/todayKwh*100)+'%':'-';
+  $('eCost').textContent=cost?cost.toFixed(2):'-';
+  $('tbReports').innerHTML=reports.slice(0,21).map(r=>`<tr><td>${r.reportDate}</td><td>${r.meterCode||r.meterId}</td><td>${r.totalEnergy}</td><td>${r.peakEnergy}</td><td>${r.flatEnergy}</td><td>${r.valleyEnergy}</td><td>${r.cost}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">暂无报表</td></tr>';
 }
 
-function renderRecentAlarms(alarms) {
-    const container = document.getElementById('recentAlarms');
-    if (!alarms || alarms.length === 0) { container.innerHTML = '<div class="empty">暂无告警记录</div>'; return; }
-    container.innerHTML = alarms.map(a => {
-        const levelClass = a.alarmLevel?.toLowerCase() || 'info';
-        const icon = levelClass === 'critical' ? '\u26A0' : levelClass === 'warning' ? '\u26A0' : '\u2139';
-        return `<div class="alarm-item">
-            <div class="alarm-icon ${levelClass}">${icon}</div>
-            <div class="alarm-content">
-                <div class="alarm-title">${a.alarmTitle || '告警'}</div>
-                <div class="alarm-meta">设备: ${a.deviceId} | ${a.alarmTime || ''}</div>
-            </div>
-            <span class="badge badge-${levelClass}">${a.alarmLevel || 'INFO'}</span>
-        </div>`;
-    }).join('');
+async function loadCarbon(){
+  const end=new Date(); const start=new Date(Date.now()-14*86400000);
+  const qs=`startDate=${start.toISOString().slice(0,10)}&endDate=${end.toISOString().slice(0,10)}`;
+  const records=arr(await api('GET','/carbon/list?'+qs).catch(()=>({data:[]})));
+  const factors=arr(await api('GET','/carbon/factor/list').catch(()=>({data:[]})));
+  let s1=0,s2=0;
+  records.forEach(r=>{ const v=Number(r.co2Emission||0); if(r.scope==='SCOPE_1') s1+=v; else s2+=v; });
+  $('cTotal').textContent=(s1+s2).toFixed(1); $('cS1').textContent=s1.toFixed(1); $('cS2').textContent=s2.toFixed(1); $('cFactors').textContent=factors.length;
+  $('tbCarbon').innerHTML=records.slice(0,40).map(r=>`<tr><td>${r.calculationDate||'-'}</td><td>${r.scope}</td><td>${r.sourceName||r.sourceType}</td><td>${r.consumption} ${r.consumptionUnit||''}</td><td>${r.emissionFactor}</td><td>${r.co2Emission}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">暂无排放记录</td></tr>';
 }
 
-function initRealtimeChart() {
-    if (realtimeChart) return;
-    const ctx = document.getElementById('realtimeChart').getContext('2d');
-    realtimeChart = new Chart(ctx, {
-        type: 'line',
-        data: { labels: [], datasets: [] },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { labels: { color: '#8b8fa3', font: { size: 11 } } } },
-            scales: {
-                x: { ticks: { color: '#8b8fa3', font: { size: 10 } }, grid: { color: '#2a2d3a' } },
-                y: { ticks: { color: '#8b8fa3', font: { size: 10 } }, grid: { color: '#2a2d3a' } }
-            }
-        }
-    });
+async function loadDispatch(){
+  const list=arr(await api('GET','/dispatch/strategy/list?page=1&size=50'));
+  const typeMap={PEAK_SHAVING:'削峰',VALLEY_FILLING:'填谷',DEMAND_RESPONSE:'需求响应'};
+  $('tbDispatch').innerHTML=list.map(s=>`<tr><td>${s.strategyName}</td><td>${typeMap[s.strategyType]||s.strategyType}</td><td>${s.targetDeviceId}</td><td>${s.actionType}</td><td>${s.priority}</td><td>${s.enabled?badgeStatus('ONLINE').replace('ONLINE','启用'):badgeStatus('OFFLINE').replace('OFFLINE','停用')}</td><td>${fmt(s.lastExecuteTime)}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">暂无策略</td></tr>';
 }
 
-function updateRealtimeChart(deviceId, properties) {
-    if (!realtimeChart) initRealtimeChart();
-    const now = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    realtimeChart.data.labels.push(now);
-    if (realtimeChart.data.labels.length > 20) realtimeChart.data.labels.shift();
-
-    Object.entries(properties).forEach(([key, val]) => {
-        if (typeof val !== 'number') return;
-        let ds = realtimeChart.data.datasets.find(d => d.label === key);
-        if (!ds) {
-            const colors = ['#4f8cf0', '#22c55e', '#f59e0b', '#06b6d4', '#ef4444'];
-            ds = { label: key, data: [], borderColor: colors[realtimeChart.data.datasets.length % colors.length], borderWidth: 2, tension: 0.3, pointRadius: 1 };
-            realtimeChart.data.datasets.push(ds);
-        }
-        ds.data.push(val);
-        if (ds.data.length > 20) ds.data.shift();
-    });
-    realtimeChart.update('none');
+async function loadUsers(){
+  try{
+    const list=arr(await api('GET','/user/list'));
+    $('tbUsers').innerHTML=list.map(u=>`<tr><td>${u.username}</td><td>${roleLabel(u.role)}</td><td>${u.tenantId??'-'}</td><td>${u.status===1||u.status==='1'?badgeStatus('ONLINE').replace('ONLINE','启用'):badgeStatus('OFFLINE').replace('OFFLINE','禁用')}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">暂无用户</td></tr>';
+  }catch(e){ $('tbUsers').innerHTML=`<tr><td colspan="4" class="empty">${e.message}</td></tr>`; }
 }
 
-function renderStatusChart(online, offline) {
-    if (statusChart) statusChart.destroy();
-    const ctx = document.getElementById('statusChart').getContext('2d');
-    statusChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['在线', '离线'],
-            datasets: [{ data: [online, offline], backgroundColor: ['#22c55e', '#3a3d4a'], borderWidth: 0 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#8b8fa3' } } } }
-    });
-}
-
-// Devices
-async function loadDevices() {
-    try {
-        const res = await api('GET', '/device/list?page=1&size=100');
-        const list = res.data?.records || res.data || [];
-        const tbody = document.getElementById('deviceTableBody');
-        if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-dim)">暂无设备</td></tr>'; return; }
-        tbody.innerHTML = list.map(d => `<tr>
-            <td>${d.deviceId}</td>
-            <td>${d.deviceName || '-'}</td>
-            <td>${d.productKey || '-'}</td>
-            <td><span class="badge ${d.status === 'ONLINE' ? 'badge-online' : 'badge-offline'}">${d.status}</span></td>
-            <td>${d.firmwareVersion || '-'}</td>
-            <td>${d.lastOnlineTime || '-'}</td>
-            <td><button class="btn btn-sm btn-primary" onclick="controlDevice('${d.deviceId}')">控制</button></td>
-        </tr>`).join('');
-    } catch (e) { console.error(e); }
-}
-
-function controlDevice(deviceId) {
-    const cmd = prompt(`控制设备 ${deviceId}，输入命令 (如 switch):`);
-    if (!cmd) return;
-    const params = prompt('输入参数 JSON (如 {"state":true}):');
-    try {
-        api('POST', '/device/control', { deviceId, command: cmd, params: params ? JSON.parse(params) : {} })
-            .then(r => alert('指令已发送: ' + JSON.stringify(r.data)))
-            .catch(e => alert('发送失败: ' + e.message));
-    } catch (e) { alert('参数格式错误'); }
-}
-
-// Alarms
-async function loadAlarms() {
-    try {
-        const res = await api('GET', '/alarm/recent?limit=50');
-        const list = res.data || [];
-        const container = document.getElementById('alarmList');
-        if (list.length === 0) { container.innerHTML = '<div class="empty">暂无告警</div>'; return; }
-        container.innerHTML = list.map(a => {
-            const lc = (a.alarmLevel || 'INFO').toLowerCase();
-            const icon = lc === 'critical' ? '\u26A0' : lc === 'warning' ? '\u26A0' : '\u2139';
-            return `<div class="alarm-item">
-                <div class="alarm-icon ${lc}">${icon}</div>
-                <div class="alarm-content">
-                    <div class="alarm-title">${a.alarmTitle || '告警'}</div>
-                    <div class="alarm-meta">设备: ${a.deviceId} | 属性: ${a.propertyIdentifier || '-'} | 值: ${a.alarmValue ?? '-'} | ${a.alarmTime || ''}</div>
-                </div>
-                <span class="badge badge-${lc}">${a.alarmLevel || 'INFO'}</span>
-            </div>`;
-        }).join('');
-    } catch (e) { console.error(e); }
-}
-
-// OTA
-async function loadFirmwares() {
-    try {
-        const res = await api('GET', '/ota/firmware/list');
-        const list = res.data || [];
-        const tbody = document.getElementById('firmwareTableBody');
-        if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-dim)">暂无固件</td></tr>'; return; }
-        tbody.innerHTML = list.map(f => `<tr>
-            <td>v${f.version}</td>
-            <td>${f.productId || '通用'}</td>
-            <td>${(f.fileSize / 1024 / 1024).toFixed(2)} MB</td>
-            <td><span class="badge badge-${f.status === 'PUBLISHED' ? 'online' : 'offline'}">${f.status}</span></td>
-            <td>${f.createTime || '-'}</td>
-        </tr>`).join('');
-    } catch (e) { console.error(e); }
-}
-
-async function loadOtaTasks() {
-    try {
-        const res = await api('GET', '/ota/task/list');
-        const list = res.data || [];
-        const tbody = document.getElementById('otaTaskTableBody');
-        if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-dim)">暂无升级任务</td></tr>'; return; }
-        tbody.innerHTML = list.map(t => {
-            const progress = t.totalCount > 0 ? Math.round((t.successCount + t.failCount) / t.totalCount * 100) : 0;
-            return `<tr>
-                <td>${t.taskName}</td>
-                <td>${t.targetType || 'ALL'}</td>
-                <td><span class="badge badge-${t.status === 'COMPLETED' ? 'online' : t.status === 'RUNNING' ? 'info' : 'offline'}">${t.status}</span></td>
-                <td>
-                    <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
-                    <div class="progress-text">${progress}% (${t.successCount + t.failCount}/${t.totalCount})</div>
-                </td>
-                <td><span style="color:var(--success)">${t.successCount}</span> / <span style="color:var(--danger)">${t.failCount}</span></td>
-                <td>${t.status === 'RUNNING' ? `<button class="btn btn-sm btn-danger" onclick="cancelOtaTask(${t.id})">取消</button>` : '-'}</td>
-            </tr>`;
-        }).join('');
-    } catch (e) { console.error(e); }
-}
-
-async function cancelOtaTask(taskId) {
-    try { await api('POST', `/ota/task/${taskId}/cancel`); loadOtaTasks(); } catch (e) { alert('取消失败: ' + e.message); }
-}
-
-// Rules
-async function loadRules() {
-    try {
-        const res = await api('GET', '/rule/list');
-        const list = res.data || [];
-        const tbody = document.getElementById('ruleTableBody');
-        if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-dim)">暂无规则</td></tr>'; return; }
-        tbody.innerHTML = list.map(r => `<tr>
-            <td>${r.ruleName}</td>
-            <td>${r.ruleType}</td>
-            <td><span class="badge badge-${r.enabled ? 'online' : 'offline'}">${r.enabled ? '启用' : '禁用'}</span></td>
-            <td>${r.description || '-'}</td>
-            <td>
-                <button class="btn btn-sm ${r.enabled ? 'btn-danger' : 'btn-success'}" onclick="toggleRule(${r.id}, ${!r.enabled})">${r.enabled ? '禁用' : '启用'}</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteRule(${r.id})">删除</button>
-            </td>
-        </tr>`).join('');
-    } catch (e) { console.error(e); }
-}
-
-async function toggleRule(id, enable) {
-    try {
-        await api('POST', `/rule/${id}/${enable ? 'enable' : 'disable'}`);
-        loadRules();
-    } catch (e) { alert('操作失败: ' + e.message); }
-}
-
-async function deleteRule(id) {
-    if (!confirm('确认删除该规则?')) return;
-    try { await api('DELETE', `/rule/${id}`); loadRules(); } catch (e) { alert('删除失败: ' + e.message); }
-}
-
-async function reloadRules() {
-    try { await api('POST', '/rule/reload'); alert('规则已重新加载'); } catch (e) { alert('重载失败: ' + e.message); }
-}
-
-function showRuleEditor() {
-    document.getElementById('ruleEditorPanel').style.display = '';
-    document.getElementById('ruleEditorTitle').textContent = '新增规则';
-    document.getElementById('ruleName').value = '';
-    document.getElementById('ruleType').value = 'THRESHOLD';
-    document.getElementById('ruleDrl').value = '';
-    document.getElementById('ruleDesc').value = '';
-}
-
-async function saveRule() {
-    const body = {
-        ruleName: document.getElementById('ruleName').value,
-        ruleType: document.getElementById('ruleType').value,
-        drlContent: document.getElementById('ruleDrl').value,
-        description: document.getElementById('ruleDesc').value,
-        enabled: 1
-    };
-    if (!body.ruleName || !body.drlContent) { alert('请填写规则名称和 DRL 内容'); return; }
-    try {
-        await api('POST', '/rule', body);
-        alert('规则已保存');
-        loadRules();
-        document.getElementById('ruleEditorPanel').style.display = 'none';
-    } catch (e) { alert('保存失败: ' + e.message); }
-}
-
-// Demo login (admin / admin123)
-async function loginDemo() {
-    try {
-        const res = await fetch('/iot/v1/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: 'admin', password: 'admin123' })
-        });
-        const data = await res.json();
-        const tok = data?.data?.token || data?.token;
-        if (!tok) throw new Error(data?.message || '登录失败');
-        document.getElementById('tokenInput').value = tok;
-        token = tok;
-        localStorage.setItem('iot_token', tok);
-        connectWs();
-        loadDashboard();
-        alert('登录成功');
-    } catch (e) {
-        alert('登录失败: ' + e.message);
-    }
-}
-
-// Auto-init
-window.addEventListener('load', () => {
-    initRealtimeChart();
-    // Auto-connect if token saved
-    const savedToken = localStorage.getItem('iot_token');
-    if (savedToken) {
-        document.getElementById('tokenInput').value = savedToken;
-        token = savedToken;
-        loadDashboard();
-    }
-});
-
-// Save token on connect
-const origConnect = connectWs;
-connectWs = function() {
-    origConnect();
-    localStorage.setItem('iot_token', document.getElementById('tokenInput').value);
-};
+// boot
+(function(){
+  const t=localStorage.getItem('iot_token');
+  const u=localStorage.getItem('iot_user');
+  if(t&&u){ try{ token=t; userInfo=JSON.parse(u); enterApp(); return; }catch(_){} }
+})();
 </script>
 </body>
 </html>

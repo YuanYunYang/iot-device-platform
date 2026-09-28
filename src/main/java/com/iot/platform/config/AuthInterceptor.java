@@ -100,13 +100,17 @@ public class AuthInterceptor implements HandlerInterceptor {
         if (uri == null) {
             return false;
         }
-        // 放行登录接口与 API 文档相关资源
-        return uri.startsWith("/iot/auth/")
-                || uri.startsWith("/iot/doc.html")
-                || uri.startsWith("/iot/swagger-ui")
-                || uri.startsWith("/iot/v3/api-docs")
-                || uri.startsWith("/iot/webjars/")
-                || uri.startsWith("/iot/favicon.ico");
+        // 兼容 context-path=/iot 下的完整 URI；登录与文档无需 JWT
+        return uri.contains("/v1/auth/login")
+                || uri.contains("/mqtt/")
+                || uri.contains("/doc.html")
+                || uri.contains("/swagger-ui")
+                || uri.contains("/v3/api-docs")
+                || uri.contains("/webjars/")
+                || uri.contains("/frontend/")
+                || uri.contains("/actuator/")
+                || uri.endsWith("/favicon.ico")
+                || uri.endsWith("/error");
     }
 
     /**

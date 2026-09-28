@@ -4,7 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>能源管控 - IoT 平台</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
+window.addEventListener('load',()=>{
+  if(token){
+    const bar=document.getElementById('loginBar'); const ub=document.getElementById('userBar');
+    if(bar) bar.style.display='none'; if(ub){ ub.style.display='flex'; document.getElementById('mUser').textContent='已恢复会话'; }
+    try{ connectWs(); }catch(e){}
+    try{ if(typeof loadHome==='function') loadHome(); }catch(e){}
+  }
+});
+
+</script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         :root {
@@ -135,10 +145,15 @@
         </div>
     </div>
 
-    <!-- Token bar -->
-    <div class="token-bar">
-        <input class="token-input" id="tokenInput" placeholder="输入 JWT Token..." />
-        <button class="btn btn-primary btn-sm" onclick="connectWs()">连接</button>
+    <!-- Login / user bar -->
+    <div class="token-bar" id="loginBar">
+        <input class="token-input" id="loginUser" placeholder="用户名" value="tenant_admin" style="flex:0.9"/>
+        <input class="token-input" id="loginPass" type="password" placeholder="密码" value="admin123" style="flex:0.9"/>
+        <button class="btn btn-primary btn-sm" onclick="mobileLogin()">登录</button>
+    </div>
+    <div class="token-bar" id="userBar" style="display:none">
+        <div style="flex:1;font-size:13px;color:var(--text-dim)">已登录：<b id="mUser" style="color:var(--text)"></b></div>
+        <button class="btn btn-sm" style="background:rgba(239,68,68,.2);color:var(--danger)" onclick="mobileLogout()">退出</button>
     </div>
 
     <!-- Content -->
@@ -286,7 +301,7 @@
 
 <script>
 const API_BASE = '/iot/v1';
-let token = '';
+let token = localStorage.getItem('iot_token') || '';
 let ws = null;
 let powerChart = null, peakValleyChart = null, trendChart = null;
 let monthlyChart = null, carbonChart = null;
@@ -318,6 +333,21 @@ async function api(method, path, body) {
 }
 
 // WebSocket
+
+async function mobileLogin(){
+  try{
+    const res=await fetch(API_BASE+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:document.getElementById('loginUser').value.trim(),password:document.getElementById('loginPass').value})});
+    const data=await res.json();
+    const tok=data?.data?.token; if(!tok) throw new Error(data.message||'登录失败');
+    token=tok; localStorage.setItem('iot_token',tok);
+    document.getElementById('loginBar').style.display='none';
+    document.getElementById('userBar').style.display='flex';
+    document.getElementById('mUser').textContent=data.data.username||'user';
+    connectWs(); loadHome();
+  }catch(e){ alert('登录失败: '+e.message); }
+}
+function mobileLogout(){ token=''; localStorage.removeItem('iot_token'); location.reload(); }
+
 function connectWs() {
     token = document.getElementById('tokenInput').value.trim();
     if (!token) { alert('请输入 JWT Token'); return; }

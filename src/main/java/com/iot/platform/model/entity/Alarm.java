@@ -26,6 +26,9 @@ public class Alarm implements Serializable {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    /** 租户ID */
+    private Long tenantId;
+
     /** 设备ID */
     private String deviceId;
 
