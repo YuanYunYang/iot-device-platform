@@ -35,7 +35,6 @@ mvnw.cmd
 # 环境变量与敏感配置
 .env
 application-local.yml
-application-prod.yml
 
 # 数据库与本地数据
 *.db

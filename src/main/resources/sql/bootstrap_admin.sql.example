@@ -1,0 +1,27 @@
+-- ============================================================
+-- 首次部署：创建默认租户 + 超级管理员（示例）
+-- 使用前请复制为 bootstrap_admin.sql 并按需修改
+-- 切勿在生产环境长期使用默认口令
+-- 默认口令明文：ChangeMe@2026（下方为 BCrypt 密文）
+-- ============================================================
+
+USE `iot_platform`;
+
+INSERT INTO `tenant` (
+    `tenant_code`, `tenant_name`, `tenant_type`, `status`,
+    `device_limit`, `user_limit`, `contact_name`
+) VALUES (
+    'default', '默认租户', 'STANDARD', 1,
+    1000, 50, 'Admin'
+);
+
+-- tenant_id 通常为 1；若已有租户请改成实际 ID
+INSERT INTO `sys_user` (
+    `tenant_id`, `username`, `password`, `role`, `status`
+) VALUES (
+    1,
+    'admin',
+    '$2a$10$dl2axoG4crgDsEVT8Pn13uzs8mQF0BSMAmbNQa5cUo7L5MLsx168C',
+    'SUPER_ADMIN',
+    1
+);

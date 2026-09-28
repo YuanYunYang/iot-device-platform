@@ -1,7 +1,8 @@
-version: '3.8'
-
-# IoT 平台 - 轻量演示编排（适配 2C2G 阿里云轻量服务器）
-# 使用: docker compose -f docker-compose-demo.yml up -d
+# ============================================================
+# IoT 平台 - 本地开发编排（轻量单机）
+# 使用: docker compose -f docker-compose.dev.yml --env-file .env up -d
+# 请先复制 .env.example 为 .env 并修改密钥
+# ============================================================
 
 services:
   mysql:
@@ -9,13 +10,14 @@ services:
     container_name: iot-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-change-me-db-password}
       MYSQL_DATABASE: iot_platform
       TZ: Asia/Shanghai
     ports:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
+      - ./src/main/resources/sql/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     command: >
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
@@ -25,28 +27,28 @@ services:
       --max-connections=50
     mem_limit: 400m
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot123456"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${DB_PASSWORD:-change-me-db-password}"]
       interval: 10s
       timeout: 5s
       retries: 20
     networks:
-      - iot-demo
+      - iot-dev
 
   redis:
     image: redis:7-alpine
     container_name: iot-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass redis123456 --maxmemory 64mb --maxmemory-policy allkeys-lru
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-change-me-redis-password} --maxmemory 64mb --maxmemory-policy allkeys-lru
     volumes:
       - redis-data:/data
     mem_limit: 96m
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "redis123456", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-change-me-redis-password}", "ping"]
       interval: 10s
       timeout: 3s
       retries: 10
     networks:
-      - iot-demo
+      - iot-dev
 
   mosquitto:
     image: eclipse-mosquitto:2
@@ -59,7 +61,7 @@ services:
       - mosquitto-data:/mosquitto/data
     mem_limit: 64m
     networks:
-      - iot-demo
+      - iot-dev
 
   influxdb:
     image: influxdb:2.7
@@ -68,15 +70,15 @@ services:
     environment:
       DOCKER_INFLUXDB_INIT_MODE: setup
       DOCKER_INFLUXDB_INIT_USERNAME: admin
-      DOCKER_INFLUXDB_INIT_PASSWORD: admin123456
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASSWORD:-change-me-influx-password}
       DOCKER_INFLUXDB_INIT_ORG: iot
       DOCKER_INFLUXDB_INIT_BUCKET: device_data
-      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: iot-platform-token-very-long-secret-string
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN:-change-me-influx-token}
     volumes:
       - influxdb-data:/var/lib/influxdb2
     mem_limit: 256m
     networks:
-      - iot-demo
+      - iot-dev
 
   kafka:
     image: apache/kafka:3.7.0
@@ -108,7 +110,7 @@ services:
       retries: 20
       start_period: 40s
     networks:
-      - iot-demo
+      - iot-dev
 
   app:
     image: eclipse-temurin:17-jre-alpine
@@ -127,18 +129,18 @@ services:
       influxdb:
         condition: service_started
     environment:
-      SPRING_PROFILES_ACTIVE: demo
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       TZ: Asia/Shanghai
       DB_HOST: mysql
-      DB_USER: root
-      DB_PASSWORD: root123456
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-change-me-db-password}
       REDIS_HOST: redis
-      REDIS_PASSWORD: redis123456
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-change-me-redis-password}
       KAFKA_SERVERS: kafka:9092
       MQTT_HOST: tcp://mosquitto:1883
       INFLUX_HOST: influxdb
-      INFLUX_TOKEN: iot-platform-token-very-long-secret-string
-      JWT_SECRET: iotPlatformDemoJwtSecretKey2026ForCustomerShow
+      INFLUX_TOKEN: ${INFLUX_TOKEN:-change-me-influx-token}
+      JWT_SECRET: ${JWT_SECRET:-change-me-jwt-secret-at-least-32-chars}
     volumes:
       - ./deploy/app.jar:/app/app.jar:ro
     entrypoint: ["java"]
@@ -151,7 +153,7 @@ services:
       retries: 40
       start_period: 120s
     networks:
-      - iot-demo
+      - iot-dev
 
   nginx:
     image: nginx:1.27-alpine
@@ -166,7 +168,7 @@ services:
       - ./frontend:/usr/share/nginx/html/frontend:ro
     mem_limit: 64m
     networks:
-      - iot-demo
+      - iot-dev
 
 volumes:
   mysql-data:
@@ -176,5 +178,5 @@ volumes:
   kafka-data:
 
 networks:
-  iot-demo:
+  iot-dev:
     driver: bridge

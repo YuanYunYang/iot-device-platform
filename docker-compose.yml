@@ -11,7 +11,7 @@ services:
     container_name: iot-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-change-me-db-password}
       MYSQL_DATABASE: iot_platform
       MYSQL_CHARSET: utf8mb4
       MYSQL_COLLATION: utf8mb4_unicode_ci
@@ -34,7 +34,7 @@ services:
       - "6379:6379"
     volumes:
       - redis-data:/data
-    command: redis-server --appendonly yes --requirepass redis123456
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-change-me-redis-password}
     networks:
       - iot-network
 
@@ -49,7 +49,7 @@ services:
     volumes:
       - mosquitto-data:/mosquitto/data
       - mosquitto-log:/mosquitto/log
-    # 内置匿名访问与监听配置，便于演示
+    # 本地开发默认匿名接入；生产请改用认证 Broker（如 EMQX）
     command: >
       sh -c "echo 'allow_anonymous true' > /mosquitto/config/mosquitto.conf &&
              echo 'listener 1883' >> /mosquitto/config/mosquitto.conf &&
@@ -69,10 +69,10 @@ services:
     environment:
       DOCKER_INFLUXDB_INIT_MODE: setup
       DOCKER_INFLUXDB_INIT_USERNAME: admin
-      DOCKER_INFLUXDB_INIT_PASSWORD: admin123456
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASSWORD:-change-me-influx-password}
       DOCKER_INFLUXDB_INIT_ORG: iot
       DOCKER_INFLUXDB_INIT_BUCKET: device_data
-      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: iot-platform-token-very-long-secret-string
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN:-change-me-influx-token}
     volumes:
       - influxdb-data:/var/lib/influxdb2
     networks:

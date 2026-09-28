@@ -85,12 +85,12 @@ td{padding:9px 10px;font-size:13px;border-bottom:1px solid var(--border)}
 <div id="loginMask">
   <div class="login-card">
     <h2>IoT 设备接入管控平台</h2>
-    <div class="sub">客户演示环境 · 请登录后查看完整功能</div>
-    <div class="fg"><label class="fl">用户名</label><input class="fi" id="loginUser" value="tenant_admin" autocomplete="username"/></div>
-    <div class="fg"><label class="fl">密码</label><input class="fi" id="loginPass" type="password" value="admin123" autocomplete="current-password"/></div>
+    <div class="sub">请使用本地已创建的管理员账号登录</div>
+    <div class="fg"><label class="fl">用户名</label><input class="fi" id="loginUser" value="" placeholder="用户名" autocomplete="username"/></div>
+    <div class="fg"><label class="fl">密码</label><input class="fi" id="loginPass" type="password" value="" placeholder="密码" autocomplete="current-password"/></div>
     <div class="err" id="loginErr"></div>
     <button class="btn btn-p" onclick="doLogin()">登 录</button>
-    <div class="login-hint">演示账号：<br/>· 租户管理员 <b>tenant_admin / admin123</b>（推荐）<br/>· 超级管理员 <b>admin / admin123</b><br/>· 运维 <b>operator / admin123</b></div>
+    <div class="login-hint">首次部署请先执行 <code>src/main/resources/sql/bootstrap_admin.sql.example</code> 创建管理员，并立即修改默认密码。</div>
   </div>
 </div>
 

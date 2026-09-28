@@ -23,7 +23,7 @@ public class LoginDTO implements Serializable {
     @NotBlank(message = "用户名不能为空")
     private String username;
 
-    @Schema(description = "密码", example = "admin123")
+    @Schema(description = "密码", example = "your-password")
     @NotBlank(message = "密码不能为空")
     private String password;
 }
