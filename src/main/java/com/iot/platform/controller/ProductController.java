@@ -34,6 +34,19 @@ public class ProductController {
         return Result.success(productService.createProduct(product));
     }
 
+    @Operation(summary = "更新产品", description = "更新产品基本信息")
+    @PutMapping
+    public Result<Product> updateProduct(@RequestBody Product product) {
+        return Result.success(productService.updateProduct(product));
+    }
+
+    @Operation(summary = "删除产品", description = "删除产品及其物模型定义")
+    @DeleteMapping("/{id}")
+    public Result<Void> deleteProduct(@PathVariable Long id) {
+        productService.deleteProduct(id);
+        return Result.success();
+    }
+
     @Operation(summary = "查询产品列表")
     @GetMapping("/list")
     public Result<List<Product>> listProducts() {

@@ -86,4 +86,38 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         wrapper.orderByDesc(Product::getCreateTime);
         return productMapper.selectList(wrapper);
     }
+
+    @Override
+    public Product updateProduct(Product product) {
+        if (product.getId() == null) {
+            throw new GlobalExceptionHandler.BusinessException(ResultCode.FAILED, "产品ID不能为空");
+        }
+        Product exist = productMapper.selectById(product.getId());
+        if (exist == null) {
+            throw new GlobalExceptionHandler.BusinessException(ResultCode.FAILED, "产品不存在");
+        }
+        if (StrUtil.isNotBlank(product.getProductKey())
+                && !product.getProductKey().equals(exist.getProductKey())) {
+            Product keyConflict = productMapper.selectByProductKey(product.getProductKey());
+            if (keyConflict != null && !keyConflict.getId().equals(product.getId())) {
+                throw new GlobalExceptionHandler.BusinessException(
+                        ResultCode.FAILED, "产品Key已存在: " + product.getProductKey());
+            }
+        }
+        productMapper.updateById(product);
+        log.info("产品已更新: id={}, productKey={}", product.getId(), product.getProductKey());
+        return productMapper.selectById(product.getId());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteProduct(Long id) {
+        Product exist = productMapper.selectById(id);
+        if (exist == null) {
+            throw new GlobalExceptionHandler.BusinessException(ResultCode.FAILED, "产品不存在");
+        }
+        thingModelMapper.deleteByProductId(id);
+        productMapper.deleteById(id);
+        log.info("产品已删除: id={}, productKey={}", id, exist.getProductKey());
+    }
 }

@@ -1,6 +1,10 @@
 # 编译输出
 target/
 !.mvn/wrapper/maven-wrapper.jar
+deploy/*.jar
+deploy/app.jar
+*.tgz
+
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -31,7 +35,6 @@ mvnw.cmd
 # 环境变量与敏感配置
 .env
 application-local.yml
-application-prod.yml
 
 # 数据库与本地数据
 *.db
