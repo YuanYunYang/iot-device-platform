@@ -320,7 +320,7 @@
 </div>
 
 <script>
-const API_BASE = '/iot';
+const API_BASE = '/iot/v1';
 let token = '';
 let ws = null;
 let realtimeChart = null;
@@ -363,7 +363,7 @@ function connectWs() {
     token = document.getElementById('tokenInput').value.trim();
     if (!token) { alert('请输入 JWT Token'); return; }
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    ws = new WebSocket(`${proto}://${location.host}${API_BASE}/ws/device`);
+    ws = new WebSocket(`${proto}://${location.host}/iot/ws/device`);
     ws.onopen = () => {
         document.getElementById('wsDot').classList.add('connected');
         document.getElementById('wsText').textContent = '已连接';

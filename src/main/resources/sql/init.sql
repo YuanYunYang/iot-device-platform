@@ -145,11 +145,11 @@ VALUES (1, 'default', '默认租户', 'ENTERPRISE', 100000, 200, '管理员', '1
 
 -- 默认超级管理员（tenant_id=0 表示跨租户超管，用户名: admin，密码: admin123）
 INSERT INTO `sys_user` (`tenant_id`, `username`, `password`, `role`, `status`)
-VALUES (0, 'admin', '$2a$10$N.ZOn9G6/YLFixAgoMn6SOaGMbWVn0r3Q8J8zv3T3T3oEMrAfK8m', 'SUPER_ADMIN', 1);
+VALUES (0, 'admin', '$2a$10$NzKJFONiWXRsY06DbI00.ORjxqjr3uyCggd9rtRIZcLb5U9XPRmb.', 'SUPER_ADMIN', 1);
 
 -- 默认租户管理员（tenant_id=1）
 INSERT INTO `sys_user` (`tenant_id`, `username`, `password`, `role`, `status`)
-VALUES (1, 'tenant_admin', '$2a$10$N.ZOn9G6/YLFixAgoMn6SOaGMbWVn0r3Q8J8zv3T3T3oEMrAfK8m', 'SYSTEM_ADMIN', 1);
+VALUES (1, 'tenant_admin', '$2a$10$NzKJFONiWXRsY06DbI00.ORjxqjr3uyCggd9rtRIZcLb5U9XPRmb.', 'SYSTEM_ADMIN', 1);
 
 -- 演示产品（tenant_id=1）
 INSERT INTO `product` (`tenant_id`, `product_key`, `product_name`, `product_type`, `node_type`, `net_type`, `data_format`, `description`)

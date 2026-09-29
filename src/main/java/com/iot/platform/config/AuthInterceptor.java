@@ -101,7 +101,8 @@ public class AuthInterceptor implements HandlerInterceptor {
             return false;
         }
         // 放行登录接口与 API 文档相关资源
-        return uri.startsWith("/iot/auth/")
+        return uri.startsWith("/iot/v1/auth/login")
+                || uri.startsWith("/iot/auth/")
                 || uri.startsWith("/iot/doc.html")
                 || uri.startsWith("/iot/swagger-ui")
                 || uri.startsWith("/iot/v3/api-docs")
