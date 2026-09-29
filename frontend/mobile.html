@@ -285,7 +285,7 @@
     </div>
 
 <script>
-const API_BASE = '/iot';
+const API_BASE = '/iot/v1';
 let token = '';
 let ws = null;
 let powerChart = null, peakValleyChart = null, trendChart = null;
@@ -323,7 +323,7 @@ function connectWs() {
     if (!token) { alert('请输入 JWT Token'); return; }
     localStorage.setItem('iot_mobile_token', token);
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    const wsUrl = proto + '://' + location.host + API_BASE + '/ws/device';
+    const wsUrl = proto + '://' + location.host + '/iot/ws/device';
     ws = new WebSocket(wsUrl);
     ws.onopen = () => {
         document.getElementById('wsDot').classList.add('connected');
